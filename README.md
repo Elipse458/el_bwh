@@ -21,6 +21,7 @@ There's a few commands this adds:
 - /finassist       <- admin command, this closes the current help request and teleports you back to your original position
 - /decassist       <- admin command, this just hides the current assist popup on the screen
 - /assist          <- player command, players can request help with this
+- /cassist         <- player command, this cancels the players ongoing assist request
 
 ## Important notes
 This bans **all** players identifiers, that means their ip,license,steam,discord,xbl ids will get banned  
