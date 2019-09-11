@@ -32,14 +32,26 @@ Citizen.CreateThread(function() -- startup
     ESX.RegisterServerCallback("el_bwh:getWarnList",function(source,cb)
         local xPlayer = ESX.GetPlayerFromId(source)
         if isAdmin(xPlayer) then
-            cb(json.encode(MySQL.Sync.fetchAll("SELECT * FROM bwh_warnings")))
+            local warnlist,namecache = {},{}
+            for k,v in ipairs(MySQL.Sync.fetchAll("SELECT * FROM bwh_warnings")) do
+                if namecache[v.sender]==nil then namecache[v.sender] = MySQL.Sync.fetchScalar("SELECT name FROM users WHERE identifier=@id",{["@id"]=v.sender}) end -- my shot at optimalization of db queries
+                v["sender_name"]=namecache[v.sender]
+                table.insert(warnlist,v)
+            end
+            cb(json.encode(warnlist))
         else logUnfairUse(xPlayer); cb(false) end
     end)
 
     ESX.RegisterServerCallback("el_bwh:getBanList",function(source,cb)
         local xPlayer = ESX.GetPlayerFromId(source)
         if isAdmin(xPlayer) then
-            cb(json.encode(MySQL.Sync.fetchAll("SELECT * FROM bwh_bans")))
+            local banlist,namecache = {},{}
+            for k,v in ipairs(MySQL.Sync.fetchAll("SELECT * FROM bwh_bans")) do
+                if namecache[v.sender]==nil then namecache[v.sender] = MySQL.Sync.fetchScalar("SELECT name FROM users WHERE identifier=@id",{["@id"]=v.sender}) end -- my shot at optimalization of db queries
+                v["sender_name"]=namecache[v.sender]
+                table.insert(banlist,v)
+            end
+            cb(json.encode(banlist))
         else logUnfairUse(xPlayer); cb(false) end
     end)
 
@@ -84,7 +96,7 @@ function refreshBanCache()
     bancache={}
     local namecache = {}
     for k,v in ipairs(MySQL.Sync.fetchAll("SELECT id,receiver,sender,reason,UNIX_TIMESTAMP(length) AS length FROM bwh_bans")) do
-        if namecache[v.sender]==nil then namecache[v.sender] = MySQL.Sync.fetchAll("SELECT name FROM users WHERE identifier=@id",{["@id"]=v.sender})[1].name end -- my shot at optimalization of db queries
+        if namecache[v.sender]==nil then namecache[v.sender] = MySQL.Sync.fetchScalar("SELECT name FROM users WHERE identifier=@id",{["@id"]=v.sender}) end -- my shot at optimalization of db queries
         table.insert(bancache,{id=v.id,sender=v.sender,sender_name=namecache[v.sender],receiver=json.decode(v.receiver),reason=v.reason,length=v.length})
     end
 end
@@ -171,6 +183,7 @@ TriggerEvent('es:addCommand', 'cassist', function(source, args, user)
     if open_assists[source] then
         open_assists[source]=nil
         TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Your request was successfuly cancelled"}})
+        execOnAdmins(function(admin) TriggerClientEvent("el_bwh:hideAssistPopup",admin) end)
     else
         TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","You don't have any pending help requests"}})
     end

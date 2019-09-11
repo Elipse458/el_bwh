@@ -108,3 +108,8 @@ end)
 RegisterCommand("decassist",function(a,b,c)
 	SendNUIMessage({hide=true})
 end, false)
+
+TriggerEvent('chat:addSuggestion', '/decassist', 'Hide assist popup',{})
+TriggerEvent('chat:addSuggestion', '/assist', 'Request help from admins',{})
+TriggerEvent('chat:addSuggestion', '/cassist', 'Cancel your pending help request',{})
+TriggerEvent('chat:addSuggestion', '/accassist', 'Accept a players help request', {{name="Player ID", help="ID of the player you want to help"}})
