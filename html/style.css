@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css?family=Roboto&display=swap');
+body {
+    background: none;
+    font-family: 'Roboto', sans-serif;
+}
+
+.container {
+    background-color: rgba(25, 24, 34, 0.75);
+    width: 45%;
+    padding: none !important;
+}
+
+#ban,
+#warn {
+    margin-top: 25vh;
+    padding: 48px;
+}
+
+#banlist,
+#warnlist {
+    margin-top: 25vh;
+    height: 550px;
+    max-height: 550px;
+    overflow-y: scroll;
+    margin-left: -15px;
+    margin-right: -15px;
+    scrollbar-width: 0px;
+    table-layout: auto;
+}
+
+#assistreq {
+    background-color: rgba(25, 24, 34, 0.35);
+    padding: 8px 8px;
+    position: absolute;
+    color: white;
+    height: auto;
+    width: fit-content;
+    top: 25vh;
+    right: 25px;
+}
