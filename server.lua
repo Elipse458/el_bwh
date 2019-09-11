@@ -5,7 +5,10 @@ local open_assists,active_assists = {},{}
 Citizen.CreateThread(function() -- startup
     TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
     while ESX==nil do Wait(0) end
-    refreshBanCache()
+    
+    MySQL.ready(function()
+        refreshBanCache()
+    end)
 
     ESX.RegisterServerCallback("el_bwh:ban", function(source,cb,target,reason,length)
         if not target or not reason or not length then return end
