@@ -19,6 +19,7 @@ There's a few commands this adds:
 - /bwh refresh     <- pulls all bans from the database and refreshes the ban cache
 - /accassist `<player id>` <- admin command, admins can accept help requests from players
 - /finassist       <- admin command, this closes the current help request and teleports you back to your original position
+- /decassist       <- admin command, this just hides the current assist popup on the screen
 - /assist          <- player command, players can request help with this
 
 ## Important notes
