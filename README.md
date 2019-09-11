@@ -22,6 +22,7 @@ There's a few commands this adds:
 - /assist          <- player command, players can request help with this
 
 ## Important notes
+This bans **all** players identifiers, that means their ip,license,steam,discord,xbl ids will get banned  
 If you rename the folder to something else than `el_bwh`, **it will break things**.  
 To rename it successfully you'll have to do some additional stuff as well. I also recommend to have the name in lowercase because it does some weird things if there's some upper case letters in the folder name.  
 To do this, open `html/script.js` and replace every occurence of `el_bwh` with your new folder name, it should only be these lines
