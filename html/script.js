@@ -57,7 +57,7 @@ $(function() {
                     var expired = item.length < Date.now();
                     $("<tr" + (expired ? " class='text-muted'" : "") + ">").append(
                         $("<td>").text(item.id),
-                        $("<td>").text(item.sender),
+                        $("<td>").text(item.sender_name + " (" + item.sender + ")"),
                         $("<td>").text(JSON.parse(item.receiver).join(",\n")),
                         $("<td>").text(item.reason),
                         $("<td>").text(new Date(item.length).format("Y/m/d H:i:s") + (expired ? " (expired)" : "")),
@@ -69,7 +69,7 @@ $(function() {
                 $.each(JSON.parse(event.data.list), function(i, item) {
                     $("<tr>").append(
                         $("<td>").text(item.id),
-                        $("<td>").text(item.sender),
+                        $("<td>").text(item.sender_name + " (" + item.sender + ")"),
                         $("<td>").text(item.receiver),
                         $("<td>").text(item.message)
                     ).appendTo("#warnlist > table > tbody");
