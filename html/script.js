@@ -6,6 +6,36 @@ function toggle(window, state) {
         $("#" + window).show();
 }
 
+function searchList(w, input) {
+    $("#" + w + " > table > tbody > tr").each(function(a) {
+        if (!input.trim()) {
+            $(this).show();
+        } else {
+            var show = false;
+            $(this).children().each(function(b) {
+                if (show) return;
+                show = $(this).text().toLowerCase().indexOf(input.toLowerCase()) !== -1;
+            });
+            if (show)
+                $(this).show();
+            else
+                $(this).hide();
+        }
+    });
+}
+
+Date.prototype.addDays = function(days) {
+    var date = new Date(this.valueOf());
+    date.setDate(date.getDate() + days);
+    return date;
+}
+
+Date.prototype.addMonths = function(months) {
+    var date = new Date(this.valueOf());
+    date.setMonth(date.getMonth() + months);
+    return date;
+}
+
 $("#banbtn").click(function() {
     var target = $("#ban > select[name=target]").val(),
         reason = $("#ban > input[name=reason]").val(),
@@ -13,9 +43,15 @@ $("#banbtn").click(function() {
     if (target == 0 || target == "" || reason == "" || length == "") {
         alert("one or more required fields are left empty");
     } else {
-        $.post("http://el_bwh/ban", JSON.stringify({ target: target, reason: reason, length: length }));
+        alert(length);
+        $.post("http://el_bwh/ban", JSON.stringify({ target: target, reason: reason, length: length, timezone: new Date().getTimezoneOffset() }));
     }
 });
+
+$("#bandaybtn").click(function() { $("#datepicker").val(new Date().addDays(1).format("Y/m/d H:i")); });
+$("#banweekbtn").click(function() { $("#datepicker").val(new Date().addDays(7).format("Y/m/d H:i")); });
+$("#banmonthbtn").click(function() { $("#datepicker").val(new Date().addMonths(1).format("Y/m/d H:i")); });
+$("#bansixmonthsbtn").click(function() { $("#datepicker").val(new Date().addMonths(6).format("Y/m/d H:i")); });
 
 $("#warnbtn").click(function() {
     var target = $("#warn > select[name=target]").val(),
@@ -28,13 +64,21 @@ $("#warnbtn").click(function() {
     }
 });
 
+$("#bansearch").on("input", function() {
+    searchList("banlist", $(this).val());
+});
+
+$("#warnsearch").on("input", function() {
+    searchList("warnlist", $(this).val());
+});
+
 $("body").on("click", "#unbanbtn", function() {
     $.post("http://el_bwh/unban", JSON.stringify({ id: $(this).data("id") }));
     $($($(this).parent()).parent()).remove();
 });
 
 $(function() {
-    $("#datepicker").datetimepicker();
+    $("#datepicker").datetimepicker({ theme: "dark", minDate: 0, minTime: 0, dayOfWeekStart: 1, parentID: "#ban" });
 
     document.onkeyup = function(data) {
         if (data.which == 27) {

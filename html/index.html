@@ -19,9 +19,15 @@
                 <option value="0">None</option>
             </select><br>
             <label for="reason">Reason</label>
-            <input type="text" class="form-control" placeholder="Reason" name="reason"><br>
+            <input type="text" class="form-control" placeholder="Reason" name="reason" required><br>
             <label for="length">Ban expiration</label>
-            <input type="text" id="datepicker" name="length" class="form-control" placeholder="01/01/1970 00:00"><br><br>
+            <input type="text" id="datepicker" name="length" class="form-control" placeholder="01/01/1970 00:00" required><br>
+            <div class="row">
+                <div class="col"><input type="button" id="bandaybtn" class="btn btn-outline-light form-control" value="1 Day"></div>
+                <div class="col"><input type="button" id="banweekbtn" class="btn btn-outline-light form-control" value="1 Week"></div>
+                <div class="col"><input type="button" id="banmonthbtn" class="btn btn-outline-light form-control" value="1 Month"></div>
+                <div class="col"><input type="button" id="bansixmonthsbtn" class="btn btn-outline-light form-control" value="6 Month"></div>
+            </div><br><br>
             <input type="button" id="banbtn" class="btn btn-success form-control" value="Ban player">
         </form>
         <form id="warn" class="hideable" style="display:none;">
@@ -31,7 +37,7 @@
                 <option value="0">None</option>
             </select><br>
             <label for="message">Message</label>
-            <input type="text" class="form-control" placeholder="Message" name="message"><br>
+            <input type="text" class="form-control" placeholder="Message" name="message" required><br>
             <div class="form-check">
                 <input id="anoncheck" type="checkbox" name="anon" class="form-check-input">
                 <label for="anon" class="form-check-label">Anonymous</label>
@@ -39,7 +45,13 @@
             <input type="button" id="warnbtn" class="btn btn-success form-control" value="Warn player">
         </form>
         <div id="warnlist" class="bg-dark hideable" style="display:none;">
-            <h1 class="text-warning text-center" style="margin-top:25px;">Warning list</h1><br>
+            <h1 class="text-warning text-center" style="margin-top:25px;">Warning list</h1>
+            <div class="row">
+                <div class="col-lg-9"></div>
+                <div class="col" style="margin-right:15px;">
+                    <input type="text" class="form-control" placeholder="Search..." id="warnsearch">
+                </div>
+            </div><br>
             <table class="table table-dark table-striped table-bordered text-light">
                 <thead>
                     <tr>
@@ -53,7 +65,13 @@
             </table>
         </div>
         <div id="banlist" class="bg-dark hideable" style="display:none;">
-            <h1 class="text-danger text-center" style="margin-top:25px;">Ban list</h1><br>
+            <h1 class="text-danger text-center" style="margin-top:25px;">Ban list</h1>
+            <div class="row">
+                <div class="col-lg-9"></div>
+                <div class="col" style="margin-right:15px;">
+                    <input type="text" class="form-control" placeholder="Search..." id="bansearch">
+                </div>
+            </div><br>
             <table class="table table-dark table-striped table-bordered text-light">
                 <thead>
                     <tr>
