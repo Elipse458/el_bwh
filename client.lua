@@ -25,12 +25,14 @@ RegisterNUICallback("ban", function(data,cb)
 end)
 
 RegisterNUICallback("warn", function(data,cb)
+	if not data.target or not data.message then return end
 	ESX.TriggerServerCallback("el_bwh:warn",function(success)
 		if success then ESX.ShowNotification("~g~Successfully warned player") else ESX.ShowNotification("~r~Something went wrong") end
 	end, data.target, data.message, data.anon)
 end)
 
 RegisterNUICallback("unban", function(data,cb)
+	if not data.id then return end
 	ESX.TriggerServerCallback("el_bwh:unban",function(success)
 		if success then ESX.ShowNotification("~g~Successfully unbanned player") else ESX.ShowNotification("~r~Something went wrong") end
 	end, data.id)
@@ -58,6 +60,7 @@ AddEventHandler("el_bwh:receiveWarn",function(sender,message)
 			Citizen.Wait(0)
 			DrawScaleformMovieFullscreen(scaleform, 255, 255, 255, 255)
 		end
+		SetScaleformMovieAsNoLongerNeeded(scaleform)
 	end)
 end)
 
@@ -110,6 +113,6 @@ RegisterCommand("decassist",function(a,b,c)
 end, false)
 
 TriggerEvent('chat:addSuggestion', '/decassist', 'Hide assist popup',{})
-TriggerEvent('chat:addSuggestion', '/assist', 'Request help from admins',{})
+TriggerEvent('chat:addSuggestion', '/assist', 'Request help from admins',{{name="Reason", help="Why do you need help?"}})
 TriggerEvent('chat:addSuggestion', '/cassist', 'Cancel your pending help request',{})
 TriggerEvent('chat:addSuggestion', '/accassist', 'Accept a players help request', {{name="Player ID", help="ID of the player you want to help"}})

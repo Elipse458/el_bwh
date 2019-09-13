@@ -166,8 +166,10 @@ function warnPlayer(xPlayer,xTarget,message,anon)
 end
 
 TriggerEvent('es:addCommand', 'assist', function(source, args, user)
+    local reason = table.concat(args," ")
+    if reason=="" or not reason then TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","Please specify a reason"}}); return end
     if not open_assists[source] and not active_assists[source] then
-        local ac = execOnAdmins(function(admin) TriggerClientEvent("el_bwh:requestedAssist",admin,source); TriggerClientEvent("chat:addMessage",admin,{color={0,255,255},multiline=Config.chatassistformat:find("\n")~=nil,args={"BWH",Config.chatassistformat:format(GetPlayerName(source),source)}}) end)
+        local ac = execOnAdmins(function(admin) TriggerClientEvent("el_bwh:requestedAssist",admin,source); TriggerClientEvent("chat:addMessage",admin,{color={0,255,255},multiline=Config.chatassistformat:find("\n")~=nil,args={"BWH",Config.chatassistformat:format(GetPlayerName(source),source,reason)}}) end)
         if ac>0 then
             open_assists[source]=true
             Citizen.SetTimeout(120000,function()
