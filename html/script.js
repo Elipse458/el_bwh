@@ -37,14 +37,13 @@ Date.prototype.addMonths = function(months) {
 }
 
 $("#banbtn").click(function() {
-    var offline = $("#ban > #offban").is(":checked");
+    var offline = $("#offbanc").is(":checked");
     var target = offline ? $("#ban > #offtarget").val() : $("#ban > select[name=target]").val(),
         reason = $("#ban > input[name=reason]").val(),
         length = $("#ban > input[name=length]").val();
     if (target == 0 || target == "" || reason == "" || length == "") {
         alert("one or more required fields are left empty");
     } else {
-        alert(offline);
         $.post("http://el_bwh/ban", JSON.stringify({ target: target, reason: reason, length: length, offline: offline }));
     }
 });
@@ -73,8 +72,8 @@ $("#warnsearch").on("input", function() {
     searchList("warnlist", $(this).val());
 });
 
-$("#offban").change(function() {
-    if ($("#offban").is(":checked")) {
+$("#offbanc").change(function() {
+    if ($("#offbanc").is(":checked")) {
         $("#ban > #offtarget").show();
         $("#ban > #targetsel").hide();
     } else {
