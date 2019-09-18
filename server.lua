@@ -154,10 +154,9 @@ function banPlayer(xPlayer,xTarget,reason,length,offline)
     print(xTarget,offline)
     local targetidentifiers,offlinename = nil,nil
     if offline then
-        MySQL.Sync.fetchAll("SELECT license,name FROM users WHERE identifier=@identifier",{["@identifier"]=xTarget},function(data)
-            targetidentifiers = {xTarget,data[1].license}
-            offlinename = data[1].name
-        end)
+        data = MySQL.Sync.fetchAll("SELECT license,name FROM users WHERE identifier=@identifier",{["@identifier"]=xTarget})
+        targetidentifiers = {xTarget,data[1].license}
+        offlinename = data[1].name
     else
         targetidentifiers = GetPlayerIdentifiers(xTarget.source)
     end
