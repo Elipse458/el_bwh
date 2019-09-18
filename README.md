@@ -25,6 +25,7 @@ There's a few commands this adds:
 
 ## Important notes
 This bans **all** players identifiers, that means their ip,license,steam,discord,xbl ids will get banned  
+Offline bans only ban steam identifier and license because that's all that's stored in the db  
 If you rename the folder to something else than `el_bwh`, **it will break things**.  
 To rename it successfully you'll have to do some additional stuff as well. I also recommend to have the name in lowercase because it does some weird things if there's some upper case letters in the folder name.  
 To do this, open `html/script.js` and replace every occurence of `el_bwh` with your new folder name, it should only be these lines
