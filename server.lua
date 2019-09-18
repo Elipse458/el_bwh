@@ -151,7 +151,6 @@ function logUnfairUse(xPlayer)
 end
 
 function banPlayer(xPlayer,xTarget,reason,length,offline)
-    print(xTarget,offline)
     local targetidentifiers,offlinename = nil,nil
     if offline then
         data = MySQL.Sync.fetchAll("SELECT license,name FROM users WHERE identifier=@identifier",{["@identifier"]=xTarget})
