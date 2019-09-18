@@ -1,5 +1,5 @@
 ESX = nil
-local pos_before_assist,assisting,assist_target = nil, false, nil
+local pos_before_assist,assisting,assist_target,last_assist = nil, false, nil, nil
 
 Citizen.CreateThread(function()
 	while ESX == nil do
@@ -21,7 +21,7 @@ RegisterNUICallback("ban", function(data,cb)
 	if not data.target or not data.length or not data.reason then return end
 	ESX.TriggerServerCallback("el_bwh:ban",function(success)
 		if success then ESX.ShowNotification("~g~Successfully banned player") else ESX.ShowNotification("~r~Something went wrong") end
-	end, data.target, data.reason, data.length)
+	end, data.target, data.reason, data.length, data.offline)
 end)
 
 RegisterNUICallback("warn", function(data,cb)
@@ -67,6 +67,7 @@ end)
 RegisterNetEvent("el_bwh:requestedAssist")
 AddEventHandler("el_bwh:requestedAssist",function(t)
 	SendNUIMessage({show=true,window="assistreq",data=Config.popassistformat:format(GetPlayerName(GetPlayerFromServerId(t)),t)})
+	last_assist=t
 end)
 
 RegisterNetEvent("el_bwh:acceptedAssist")
@@ -94,6 +95,7 @@ end)
 RegisterNetEvent("el_bwh:hideAssistPopup")
 AddEventHandler("el_bwh:hideAssistPopup",function(t)
 	SendNUIMessage({hide=true})
+	last_assist=nil
 end)
 
 RegisterNetEvent("el_bwh:showWindow")
@@ -109,10 +111,32 @@ AddEventHandler("el_bwh:showWindow",function(win)
 end)
 
 RegisterCommand("decassist",function(a,b,c)
-	SendNUIMessage({hide=true})
+	TriggerEvent("el_bwh:hideAssistPopup")
 end, false)
+
+if Config.assist_keys then
+	Citizen.CreateThread(function()
+		while true do
+			Citizen.Wait(0)
+			if IsControlJustPressed(0, Config.assist_keys.accept) then
+				if not last_assist then
+					ESX.ShowNotification("~r~Noone requested assistance yet")
+				elseif not NetworkIsPlayerActive(GetPlayerFromServerId(last_assist)) then
+					ESX.ShowNotification("~r~The player that requested assistance is not online anymore")
+					last_assist=nil
+				else
+					TriggerServerEvent("el_bwh:acceptAssistKey",last_assist)
+				end
+			end
+			if IsControlJustPressed(0, Config.assist_keys.decline) then
+				TriggerEvent("el_bwh:hideAssistPopup")
+			end
+		end
+	end)
+end
 
 TriggerEvent('chat:addSuggestion', '/decassist', 'Hide assist popup',{})
 TriggerEvent('chat:addSuggestion', '/assist', 'Request help from admins',{{name="Reason", help="Why do you need help?"}})
 TriggerEvent('chat:addSuggestion', '/cassist', 'Cancel your pending help request',{})
+TriggerEvent('chat:addSuggestion', '/finassist', 'Finish assist and tp back',{})
 TriggerEvent('chat:addSuggestion', '/accassist', 'Accept a players help request', {{name="Player ID", help="ID of the player you want to help"}})

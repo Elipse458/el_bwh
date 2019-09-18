@@ -10,13 +10,13 @@ Citizen.CreateThread(function() -- startup
         refreshBanCache()
     end)
 
-    ESX.RegisterServerCallback("el_bwh:ban", function(source,cb,target,reason,length)
+    ESX.RegisterServerCallback("el_bwh:ban", function(source,cb,target,reason,length,offline)
         if not target or not reason or not length then return end
         local xPlayer = ESX.GetPlayerFromId(source)
         local xTarget = ESX.GetPlayerFromId(target)
-        if not xPlayer or not xTarget then cb(nil); return end
+        if not xPlayer or (not xTarget and not offline) then cb(nil); return end
         if isAdmin(xPlayer) then
-            banPlayer(xPlayer,xTarget,reason,length)
+            banPlayer(xPlayer,offline and target or xTarget,reason,length,offline)
             cb(true)
         else logUnfairUse(xPlayer); cb(false) end
     end)
@@ -150,12 +150,23 @@ function logUnfairUse(xPlayer)
     logAdmin(("Player %s (%s) tried to use an admin feature"):format(xPlayer.getName(),xPlayer.identifier))
 end
 
-function banPlayer(xPlayer,xTarget,reason,length)
-    MySQL.Async.execute("INSERT INTO bwh_bans(id,receiver,sender,length,reason) VALUES(NULL,@receiver,@sender,@length,@reason)",{["@receiver"]=json.encode(GetPlayerIdentifiers(xTarget.source)),["@sender"]=xPlayer.identifier,["@length"]=length,["@reason"]=reason},function(_)
+function banPlayer(xPlayer,xTarget,reason,length,offline)
+    print(xTarget,offline)
+    local targetidentifiers,offlinename = nil,nil
+    if offline then
+        MySQL.Sync.fetchAll("SELECT license,name FROM users WHERE identifier=@identifier",{["@identifier"]=xTarget},function(data)
+            targetidentifiers = {xTarget,data[1].license}
+            offlinename = data[1].name
+        end)
+    else
+        targetidentifiers = GetPlayerIdentifiers(xTarget.source)
+    end
+    MySQL.Async.execute("INSERT INTO bwh_bans(id,receiver,sender,length,reason) VALUES(NULL,@receiver,@sender,@length,@reason)",{["@receiver"]=json.encode(targetidentifiers),["@sender"]=xPlayer.identifier,["@length"]=length,["@reason"]=reason},function(_)
         local banid = MySQL.Sync.fetchScalar("SELECT MAX(id) FROM bwh_bans")
-        logAdmin(("Player %s (%s) got banned by %s, expiration: %s, reason: '%s'"):format(xTarget.getName(),xTarget.identifier,xPlayer.getName(),length,reason))
-        table.insert(bancache,{id=banid==nil and "1" or banid,sender=xPlayer.identifier,reason=reason,sender_name=xPlayer.getName(),receiver=GetPlayerIdentifiers(xTarget.source),length=MySQL.Sync.fetchScalar("SELECT UNIX_TIMESTAMP(@date)",{["@date"]=length})})
-        DropPlayer(xTarget.source,Config.banformat:format(reason,length,xPlayer.getName(),banid==nil and "1" or banid))
+        logAdmin(("Player %s (%s) got banned by %s, expiration: %s, reason: '%s'"..(offline and " (OFFLINE BAN)" or "")):format(offline and offlinename or xTarget.getName(),offline and targetidentifiers[1] or xTarget.identifier,xPlayer.getName(),length,reason))
+        table.insert(bancache,{id=banid==nil and "1" or banid,sender=xPlayer.identifier,reason=reason,sender_name=xPlayer.getName(),receiver=targetidentifiers,length=MySQL.Sync.fetchScalar("SELECT UNIX_TIMESTAMP(@date)",{["@date"]=length})})
+        xTarget = ESX.GetPlayerFromIdentifier(xTarget) -- just in case the player is on the server, you never know
+        if xTarget then DropPlayer(xTarget.source,Config.banformat:format(reason,length,xPlayer.getName(),banid==nil and "1" or banid)) end
     end)
 end
 
@@ -228,10 +239,9 @@ TriggerEvent('es:addCommand', 'bwh', function(source, args, user)
     end
 end)
 
-TriggerEvent('es:addCommand', 'accassist', function(source, args, user)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    local target = tonumber(args[1])
+function acceptAssist(xPlayer,target)
     if isAdmin(xPlayer) then
+        local source = xPlayer.source
         for k,v in pairs(active_assists) do
             if v==source then
                 TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","You're already helping someone"}})
@@ -252,4 +262,17 @@ TriggerEvent('es:addCommand', 'accassist', function(source, args, user)
     else
         TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","You don't have permissions to use this command!"}})
     end
+end
+
+TriggerEvent('es:addCommand', 'accassist', function(source, args, user)
+    local xPlayer = ESX.GetPlayerFromId(source)
+    local target = tonumber(args[1])
+    acceptAssist(xPlayer,target)
+end)
+
+RegisterServerEvent("el_bwh:acceptAssistKey")
+AddEventHandler("el_bwh:acceptAssistKey",function(target)
+    if not target then return end
+    local _source = source
+    acceptAssist(ESX.GetPlayerFromId(_source),target)
 end)
