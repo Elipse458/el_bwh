@@ -14,10 +14,15 @@
     <div class="container text-light">
         <form id="ban" class="hideable" style="display:none;">
             <h1 class="text-center text-danger">Ban player</h1><br>
+            <div class="form-check">
+                <input id="offban" type="checkbox" name="offban" class="form-check-input">
+                <label for="offban" class="form-check-label">Offline ban</label>
+            </div>
             <label for="target">Target</label>
             <select class="form-control" name="target" id="targetsel">
                 <option value="0">None</option>
-            </select><br>
+            </select>
+            <input type="text" id="offtarget" class="form-control" placeholder="steam:11000011abcdefg" name="offtarget" style="display:none;"><br>
             <label for="reason">Reason</label>
             <input type="text" class="form-control" placeholder="Reason" name="reason" required><br>
             <label for="length">Ban expiration</label>
