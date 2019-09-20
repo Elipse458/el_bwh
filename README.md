@@ -21,7 +21,7 @@ There's a few commands this adds:
 - /finassist       <- admin command, this closes the current help request and teleports you back to your original position
 - /decassist       <- admin command, this just hides the current assist popup on the screen
 - /assist `<reason>` <- player command, players can request help with this
-- /cassist         <- player command, this cancels the players ongoing assist request
+- /cassist         <- player command, this cancels the players ongoing assist request  
 To unban someone, go to the ban list and scroll far right to the "Actions" section, you'll find a green unban button there  
 
 ## Important notes
