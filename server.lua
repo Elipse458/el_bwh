@@ -163,7 +163,7 @@ function banPlayer(xPlayer,xTarget,reason,length,offline)
         local banid = MySQL.Sync.fetchScalar("SELECT MAX(id) FROM bwh_bans")
         logAdmin(("Player %s (%s) got banned by %s, expiration: %s, reason: '%s'"..(offline and " (OFFLINE BAN)" or "")):format(offline and offlinename or xTarget.getName(),offline and targetidentifiers[1] or xTarget.identifier,xPlayer.getName(),length,reason))
         table.insert(bancache,{id=banid==nil and "1" or banid,sender=xPlayer.identifier,reason=reason,sender_name=xPlayer.getName(),receiver=targetidentifiers,length=MySQL.Sync.fetchScalar("SELECT UNIX_TIMESTAMP(@date)",{["@date"]=length})})
-        xTarget = ESX.GetPlayerFromIdentifier(xTarget) -- just in case the player is on the server, you never know
+        if offline then xTarget = ESX.GetPlayerFromIdentifier(xTarget) end -- just in case the player is on the server, you never know
         if xTarget then DropPlayer(xTarget.source,Config.banformat:format(reason,length,xPlayer.getName(),banid==nil and "1" or banid)) end
     end)
 end
