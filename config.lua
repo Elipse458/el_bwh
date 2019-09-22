@@ -1,10 +1,39 @@
 Config = {}
 
-Config.admin_groups = {"admin","superadmin"} -- groups that can use admin commands
-Config.admin_level = 10 -- min admin level that can use admin commands
-Config.banformat = "BANNED!\nReason: %s\nExpires: %s\nBanned by: %s (Ban ID: #%s)" -- message shown when banned (1st %s = reason, 2nd %s = expire, 3rd %s = banner, 4th %s = ban id)
-Config.popassistformat = "Player %s is requesting help\nWrite <span class='text-success'>/accassist %s</span> to accept or <span class='text-danger'>/decassist</span> to decline" -- popup assist message format
-Config.chatassistformat = "Player %s is requesting help\nWrite ^2/accassist %s^7 to accept or ^1/decassist^7 to decline\n^4Reason^7: %s" -- chat assist message format
-Config.assist_keys = {accept=208,decline=207} -- keys for accepting/declining assist messages (default = page up, page down) - https://docs.fivem.net/game-references/controls/
--- Config.assist_keys = nil -- coment the line above and uncomment this one to disable assist keys
-Config.warning_screentime = 7.5 * 1000 -- warning display length (in ms)
+Config.draw_distance = 25.0
+
+Config.default_tax_rate = 0.03 -- default tax rate if per-business one is not set (default 3%, max = 1.0(100%))
+
+Config.employee_payout_formula = function(earnings,employee_count) -- earnings = after tax | this is the amount that each employee will get, the remainder will go to the owner
+    return (earnings*0.4)/employee_count -- employees get 40% split up (owner is guaranteed 60%)
+end
+
+-- List of possible variables
+-- {name} - name of the business
+-- {address} - address of the business
+-- {description} - desctiption of the business
+-- {blipname} - custom blip name (default Config.blip.name)
+-- {owner} - owner steamid (default nil)
+-- {owner_name} - owner steam name (default 'None')
+-- {owner_rp_name} - owner RP name (default 'None')
+-- {earnings} - business earnings/hr
+-- {price} - business price
+-- {stock} - business stock count
+-- {stock_price} - business stock price
+-- {taxrate} - business tax rate (in %, default = 3)
+-- {id} - business ID
+Config.display = {
+    {offset = 0.23, text = "~y~ {name}", scale = 1.5},
+    {offset = 0.0, text = "{address}; {description}", scale = 0.7},
+    {offset = -0.1, text = "~b~Owner: ~r~{owner_rp_name} ~b~Price: ~g~${price} ~s~(~r~{taxrate}% tax~s~)", scale = 1},
+    {offset = -0.21, text = "~b~Earnings: ~g~${earnings}/hr", scale = 1}
+}
+
+Config.blip = {
+    enabled = false,
+    color = 29, -- https://wiki.gtanet.work/index.php?title=Blips
+    sprite = 106, -- https://wiki.gtanet.work/index.php?title=Blips
+    name = "Business"
+}
+
+Config.sell_percentage = 0.8 -- % from original price the player gets after selling business (1 = 100%, 0.5 = 50%)
