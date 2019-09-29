@@ -2,7 +2,7 @@ CREATE TABLE `bwh_bans` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `receiver` text NOT NULL,
   `sender` varchar(60) NOT NULL,
-  `length` datetime NOT NULL,
+  `length` datetime NULL,
   `reason` text NOT NULL,
   PRIMARY KEY (`id`)
 );
