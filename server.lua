@@ -11,7 +11,7 @@ Citizen.CreateThread(function() -- startup
     end)
 
     ESX.RegisterServerCallback("el_bwh:ban", function(source,cb,target,reason,length,offline)
-        if not target or not reason or not length then return end
+        if not target or not reason then return end
         local xPlayer = ESX.GetPlayerFromId(source)
         local xTarget = ESX.GetPlayerFromId(target)
         if not xPlayer or (not xTarget and not offline) then cb(nil); return end
@@ -74,9 +74,8 @@ end)
 AddEventHandler("playerConnecting",function(name, setKick, def)
     local banned, data = isBanned(GetPlayerIdentifiers(source))
     if banned then
-        print(("Banned player %s (%s) tried to join, their ban expires on %s (Ban ID: #%s)"):format(GetPlayerName(source),data.receiver[1],os.date("%Y-%m-%d %H:%M:%S",data.length),data.id))
-        -- def.done(Config.banformat:format(data.reason,os.date("%Y-%m-%d %H:%M:%S",data.length),data.sender_name,data.id))
-        setKick(source,Config.banformat:format(data.reason,os.date("%Y-%m-%d %H:%M:%S",data.length),data.sender_name,data.id))
+        print(("Banned player %s (%s) tried to join, their ban expires on %s (Ban ID: #%s)"):format(GetPlayerName(source),data.receiver[1],data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.id))
+        def.done(Config.banformat:format(data.reason,data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.sender_name,data.id))
     end
 end)
 
@@ -115,7 +114,7 @@ end
 
 function isBanned(identifiers)
     for _,ban in ipairs(bancache) do
-        if ban.length>os.time() then
+        if ban.length==nil or ban.length>os.time() then
             for _,bid in ipairs(ban.receiver) do
                 for _,pid in ipairs(identifiers) do
                     if bid==pid then return true, ban end
@@ -152,7 +151,7 @@ function logUnfairUse(xPlayer)
 end
 
 function banPlayer(xPlayer,xTarget,reason,length,offline)
-    local targetidentifiers,offlinename = nil,nil
+    local targetidentifiers,offlinename,timestring = nil,nil,nil
     if offline then
         data = MySQL.Sync.fetchAll("SELECT license,name FROM users WHERE identifier=@identifier",{["@identifier"]=xTarget})
         targetidentifiers = {xTarget,data[1].license}
@@ -162,10 +161,15 @@ function banPlayer(xPlayer,xTarget,reason,length,offline)
     end
     MySQL.Async.execute("INSERT INTO bwh_bans(id,receiver,sender,length,reason) VALUES(NULL,@receiver,@sender,@length,@reason)",{["@receiver"]=json.encode(targetidentifiers),["@sender"]=xPlayer.identifier,["@length"]=length,["@reason"]=reason},function(_)
         local banid = MySQL.Sync.fetchScalar("SELECT MAX(id) FROM bwh_bans")
-        logAdmin(("Player %s (%s) got banned by %s, expiration: %s, reason: '%s'"..(offline and " (OFFLINE BAN)" or "")):format(offline and offlinename or xTarget.getName(),offline and targetidentifiers[1] or xTarget.identifier,xPlayer.getName(),length,reason))
-        table.insert(bancache,{id=banid==nil and "1" or banid,sender=xPlayer.identifier,reason=reason,sender_name=xPlayer.getName(),receiver=targetidentifiers,length=MySQL.Sync.fetchScalar("SELECT UNIX_TIMESTAMP(@date)",{["@date"]=length})})
+        logAdmin(("Player %s (%s) got banned by %s, expiration: %s, reason: '%s'"..(offline and " (OFFLINE BAN)" or "")):format(offline and offlinename or xTarget.getName(),offline and targetidentifiers[1] or xTarget.identifier,xPlayer.getName(),length~=nil and length or "PERMANENT",reason))
+        if length~=nil then
+            timestring=length
+            local year,month,day,hour,minute = string.match(length,"(%d+)/(%d+)/(%d+) (%d+):(%d+)")
+            length = os.time({year=year,month=month,day=day,hour=hour,min=minute})
+        end
+        table.insert(bancache,{id=banid==nil and "1" or banid,sender=xPlayer.identifier,reason=reason,sender_name=xPlayer.getName(),receiver=targetidentifiers,length=length})
         if offline then xTarget = ESX.GetPlayerFromIdentifier(xTarget) end -- just in case the player is on the server, you never know
-        if xTarget then DropPlayer(xTarget.source,Config.banformat:format(reason,length,xPlayer.getName(),banid==nil and "1" or banid)) end
+        if xTarget then DropPlayer(xTarget.source,Config.banformat:format(reason,length~=nil and timestring or "PERMANENT",xPlayer.getName(),banid==nil and "1" or banid)) end
     end)
 end
 
@@ -181,9 +185,12 @@ TriggerEvent('es:addCommand', 'assist', function(source, args, user)
     if not open_assists[source] and not active_assists[source] then
         local ac = execOnAdmins(function(admin) TriggerClientEvent("el_bwh:requestedAssist",admin,source); TriggerClientEvent("chat:addMessage",admin,{color={0,255,255},multiline=Config.chatassistformat:find("\n")~=nil,args={"BWH",Config.chatassistformat:format(GetPlayerName(source),source,reason)}}) end)
         if ac>0 then
-            open_assists[source]=true
+            open_assists[source]=reason
             Citizen.SetTimeout(120000,function()
                 if open_assists[source] then open_assists[source]=nil end
+                if GetPlayerName(source)~=nil then
+                    TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","Your assist request has expired"}})
+                end
             end)
             TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Assist request sent (expires in 120s), write ^1/cassist^7 to cancel your request"}})
         else
@@ -230,6 +237,16 @@ TriggerEvent('es:addCommand', 'bwh', function(source, args, user)
         elseif args[1]=="refresh" then
             TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Refreshing ban cache..."}})
             refreshBanCache()
+        elseif args[1]=="assists" then
+            local openassistsmsg,activeassistsmsg = "",""
+            for k,v in pairs(open_assists) do
+                openassistsmsg=openassistsmsg.."^5ID "..k.." ("..GetPlayerName(k)..")^7 - "..v.."\n"
+            end
+            for k,v in pairs(active_assists) do
+                activeassistsmsg=activeassistsmsg.."^5ID "..k.." ("..GetPlayerName(k)..")^7 - "..v.." ("..GetPlayerName(v)..")\n"
+            end
+            TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=true,args={"BWH","Pending assists:\n"..(openassistsmsg~="" and openassistsmsg or "^1No pending assists")}})
+            TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=true,args={"BWH","Active assists:\n"..(activeassistsmsg~="" and activeassistsmsg or "^1No active assists")}})
         else
             TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","Invalid sub-command! (^4ban^7,^4warn^7,^4banlist^7,^4warnlist^7,^4refresh^7)"}})
         end

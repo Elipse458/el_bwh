@@ -18,7 +18,7 @@ function GetIndexedPlayerList()
 end
 
 RegisterNUICallback("ban", function(data,cb)
-	if not data.target or not data.length or not data.reason then return end
+	if not data.target or not data.reason then return end
 	ESX.TriggerServerCallback("el_bwh:ban",function(success)
 		if success then ESX.ShowNotification("~g~Successfully banned player") else ESX.ShowNotification("~r~Something went wrong") end
 	end, data.target, data.reason, data.length, data.offline)

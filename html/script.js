@@ -38,13 +38,14 @@ Date.prototype.addMonths = function(months) {
 
 $("#banbtn").click(function() {
     var offline = $("#offbanc").is(":checked");
+    var perm = $("#permbanc").is(":checked");
     var target = offline ? $("#ban > #offtarget").val() : $("#ban > select[name=target]").val(),
         reason = $("#ban > input[name=reason]").val(),
         length = $("#ban > input[name=length]").val();
-    if (target == 0 || target == "" || reason == "" || length == "") {
+    if (target == 0 || target == "" || reason == "" || (length == "" && !perm)) {
         alert("one or more required fields are left empty");
     } else {
-        $.post("http://el_bwh/ban", JSON.stringify({ target: target, reason: reason, length: length, offline: offline }));
+        $.post("http://el_bwh/ban", JSON.stringify({ target: target, reason: reason, length: perm ? null : length, offline: offline }));
     }
 });
 
@@ -80,6 +81,10 @@ $("#offbanc").change(function() {
         $("#ban > #offtarget").hide();
         $("#ban > #targetsel").show();
     }
+});
+
+$("#permbanc").change(function() {
+    $("#datepicker, #bandaybtn, #banweekbtn, #banmonthbtn, #bansixmonthsbtn").prop("disabled", $("#permbanc").is(":checked"));
 });
 
 $("body").on("click", "#unbanbtn", function() {

@@ -14,10 +14,14 @@
     <div class="container text-light">
         <form id="ban" class="hideable" style="display:none;">
             <h1 class="text-center text-danger">Ban player</h1><br>
-            <div class="form-check">
+            <div class="form-check form-check-inline">
                 <input id="offbanc" type="checkbox" name="offban" class="form-check-input">
                 <label for="offban" class="form-check-label">Offline ban</label>
             </div>
+            <div class="form-check form-check-inline">
+                <input id="permbanc" type="checkbox" name="permban" class="form-check-input">
+                <label for="permban" class="form-check-label">Permanent ban</label>
+            </div><br>
             <label for="target">Target</label>
             <select class="form-control" name="target" id="targetsel">
                 <option value="0">None</option>
