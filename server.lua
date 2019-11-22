@@ -84,7 +84,7 @@ AddEventHandler("playerConnecting",function(name, setKick, def)
     if banned then
         print(("Banned player %s (%s) tried to join, their ban expires on %s (Ban ID: #%s)"):format(GetPlayerName(source),data.receiver[1],data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.id))
         local kickmsg = Config.banformat:format(data.reason,data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.sender_name,data.id)
-        if Config.backup_kick_method then DropPlayer(kickmsg) else def.done(kickmsg) end
+        if Config.backup_kick_method then DropPlayer(source,kickmsg) else def.done(kickmsg) end
     end
 end)
 
