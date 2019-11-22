@@ -33,17 +33,17 @@ If you rename the folder to something else than `el_bwh`, **it will break things
 To rename it successfully you'll have to do some additional stuff as well. I also recommend to have the name in lowercase because it does some weird things if there's some upper case letters in the folder name.  
 To do this, open `html/script.js` and replace every occurence of `el_bwh` with your new folder name, it should only be these lines
 ```
-47 -> $.post("http://el_bwh/ban", JSON.stringify({ target: target, reason: reason, length: length }));
-63 -> $.post("http://el_bwh/warn", JSON.stringify({ target: target, message: message, anon: anon }));
-76 -> $.post("http://el_bwh/unban", JSON.stringify({ id: $(this).data("id") }));
-86 -> $.post("http://el_bwh/hidecursor", JSON.stringify({}));
+$.post("http://el_bwh/ban", JSON.stringify({ target: target, reason: reason, length: length }));
+$.post("http://el_bwh/warn", JSON.stringify({ target: target, message: message, anon: anon }));
+$.post("http://el_bwh/unban", JSON.stringify({ id: $(this).data("id") }));
+$.post("http://el_bwh/hidecursor", JSON.stringify({}));
 ```
 After you replace it, it should look like this
 ```
-47 -> $.post("http://<YOUR FOLDER NAME>/ban", JSON.stringify({ target: target, reason: reason, length: length }));
-63 -> $.post("http://<YOUR FOLDER NAME>/warn", JSON.stringify({ target: target, message: message, anon: anon }));
-76 -> $.post("http://<YOUR FOLDER NAME>/unban", JSON.stringify({ id: $(this).data("id") }));
-86 -> $.post("http://<YOUR FOLDER NAME>/hidecursor", JSON.stringify({}));
+$.post("http://<YOUR FOLDER NAME>/ban", JSON.stringify({ target: target, reason: reason, length: length }));
+$.post("http://<YOUR FOLDER NAME>/warn", JSON.stringify({ target: target, message: message, anon: anon }));
+$.post("http://<YOUR FOLDER NAME>/unban", JSON.stringify({ id: $(this).data("id") }));
+$.post("http://<YOUR FOLDER NAME>/hidecursor", JSON.stringify({}));
 ```
 
 If you don't like the current design (i don't blame you, i'm really not a designer), you can edit the `html/index.html` and `html/style.css` files to change the design to your liking
