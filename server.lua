@@ -10,14 +10,16 @@ Citizen.CreateThread(function() -- startup
         refreshBanCache()
     end)
 
+    sendToDiscord("Starting logger...")
+
     ESX.RegisterServerCallback("el_bwh:ban", function(source,cb,target,reason,length,offline)
         if not target or not reason then return end
         local xPlayer = ESX.GetPlayerFromId(source)
         local xTarget = ESX.GetPlayerFromId(target)
         if not xPlayer or (not xTarget and not offline) then cb(nil); return end
         if isAdmin(xPlayer) then
-            banPlayer(xPlayer,offline and target or xTarget,reason,length,offline)
-            cb(true)
+            local success, reason = banPlayer(xPlayer,offline and target or xTarget,reason,length,offline)
+            cb(success, reason)
         else logUnfairUse(xPlayer); cb(false) end
     end)
 
@@ -62,9 +64,15 @@ Citizen.CreateThread(function() -- startup
         local xPlayer = ESX.GetPlayerFromId(source)
         if isAdmin(xPlayer) then
             MySQL.Async.execute("DELETE FROM bwh_bans WHERE id=@id",{["@id"]=id},function(rc)
+                local bannedidentifier = "N/A"
                 for k,v in ipairs(bancache) do
-                    if v.id==id then table.remove(bancache,k); break end
+                    if v.id==id then
+                        bannedidentifier = v.receiver[1]
+                        table.remove(bancache,k)
+                        break
+                    end
                 end
+                logAdmin(("Admin ^1%s^7 unbanned ^1%s^7 (%s)"):format(xPlayer.getName(),bannedidentifier~="N/A" and MySQL.Sync.fetchScalar("SELECT name FROM users WHERE identifier=@id",{["@id"]=bannedidentifier}) or "N/A",bannedidentifier))
                 cb(rc>0)
             end)
         else logUnfairUse(xPlayer); cb(false) end
@@ -75,7 +83,8 @@ AddEventHandler("playerConnecting",function(name, setKick, def)
     local banned, data = isBanned(GetPlayerIdentifiers(source))
     if banned then
         print(("Banned player %s (%s) tried to join, their ban expires on %s (Ban ID: #%s)"):format(GetPlayerName(source),data.receiver[1],data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.id))
-        def.done(Config.banformat:format(data.reason,data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.sender_name,data.id))
+        local kickmsg = Config.banformat:format(data.reason,data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.sender_name,data.id)
+        if Config.backup_kick_method then DropPlayer(kickmsg) else def.done(kickmsg) end
     end
 end)
 
@@ -104,10 +113,17 @@ function refreshBanCache()
     end
 end
 
+function sendToDiscord(msg)
+    if Config.discord_webhook~=nil then
+        PerformHttpRequest(Config.discord_webhook, function(a,b,c)end, "POST", json.encode({embeds={{title="BWH Action Log",description=msg,color=65280,}}}), {["Content-Type"]="application/json"})
+    end
+end
+
 function logAdmin(msg)
     for k,v in ipairs(ESX.GetPlayers()) do
         if isAdmin(ESX.GetPlayerFromId(v)) then
             TriggerClientEvent("chat:addMessage",v,{color={255,0,0},multiline=false,args={"BWH",msg}})
+            sendToDiscord(msg:gsub("%^%d",""))
         end
     end
 end
@@ -154,14 +170,17 @@ function banPlayer(xPlayer,xTarget,reason,length,offline)
     local targetidentifiers,offlinename,timestring = nil,nil,nil
     if offline then
         data = MySQL.Sync.fetchAll("SELECT license,name FROM users WHERE identifier=@identifier",{["@identifier"]=xTarget})
-        targetidentifiers = {xTarget,data[1].license}
+        if #data<1 then
+            return false, "~r~Identifier is not in users database!"
+        end
+        targetidentifiers = {xTarget,data[1].license} -- in this case xTarget is an identifier
         offlinename = data[1].name
     else
         targetidentifiers = GetPlayerIdentifiers(xTarget.source)
     end
     MySQL.Async.execute("INSERT INTO bwh_bans(id,receiver,sender,length,reason) VALUES(NULL,@receiver,@sender,@length,@reason)",{["@receiver"]=json.encode(targetidentifiers),["@sender"]=xPlayer.identifier,["@length"]=length,["@reason"]=reason},function(_)
         local banid = MySQL.Sync.fetchScalar("SELECT MAX(id) FROM bwh_bans")
-        logAdmin(("Player %s (%s) got banned by %s, expiration: %s, reason: '%s'"..(offline and " (OFFLINE BAN)" or "")):format(offline and offlinename or xTarget.getName(),offline and targetidentifiers[1] or xTarget.identifier,xPlayer.getName(),length~=nil and length or "PERMANENT",reason))
+        logAdmin(("Player ^1%s^7 (%s) got banned by ^1%s^7, expiration: %s, reason: '%s'"..(offline and " (OFFLINE BAN)" or "")):format(offline and offlinename or xTarget.getName(),offline and targetidentifiers[1] or xTarget.identifier,xPlayer.getName(),length~=nil and length or "PERMANENT",reason))
         if length~=nil then
             timestring=length
             local year,month,day,hour,minute = string.match(length,"(%d+)/(%d+)/(%d+) (%d+):(%d+)")
@@ -169,7 +188,8 @@ function banPlayer(xPlayer,xTarget,reason,length,offline)
         end
         table.insert(bancache,{id=banid==nil and "1" or banid,sender=xPlayer.identifier,reason=reason,sender_name=xPlayer.getName(),receiver=targetidentifiers,length=length})
         if offline then xTarget = ESX.GetPlayerFromIdentifier(xTarget) end -- just in case the player is on the server, you never know
-        if xTarget then DropPlayer(xTarget.source,Config.banformat:format(reason,length~=nil and timestring or "PERMANENT",xPlayer.getName(),banid==nil and "1" or banid)) end
+        if xTarget then DropPlayer(xTarget.source,Config.banformat:format(reason,length~=nil and timestring or "PERMANENT",xPlayer.getName(),banid==nil and "1" or banid)) else return false, "~r~Unknown error (MySQL?)" end
+        return true
     end)
 end
 
@@ -292,3 +312,17 @@ AddEventHandler("el_bwh:acceptAssistKey",function(target)
     local _source = source
     acceptAssist(ESX.GetPlayerFromId(_source),target)
 end)
+
+if Config.enable_ban_json or Config.enable_warning_json then
+    SetHttpHandler(function(req,res)
+        if req.path=="/bans.json" and Config.enable_ban_json then
+            MySQL.Async.fetchAll("SELECT * FROM bwh_bans",{},function(data)
+                res.send(json.encode(data))
+            end)
+        elseif req.path=="/warnings.json" and Config.enable_warning_json then
+            MySQL.Async.fetchAll("SELECT * FROM bwh_warnings",{},function(data)
+                res.send(json.encode(data))
+            end)
+        end
+    end)
+end
