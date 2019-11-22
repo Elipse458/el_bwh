@@ -113,13 +113,13 @@ $(function() {
             } else if (event.data.window == "banlist") {
                 $("#banlist > table > tbody").empty();
                 $.each(JSON.parse(event.data.list), function(i, item) {
-                    var expired = item.length < Date.now();
+                    var expired = item.length > 0 && item.length < Date.now();
                     $("<tr" + (expired ? " class='text-muted'" : "") + ">").append(
                         $("<td>").text(item.id),
                         $("<td>").text(item.sender_name + " (" + item.sender + ")"),
                         $("<td>").text(JSON.parse(item.receiver).join(",\n")),
                         $("<td>").text(item.reason),
-                        $("<td>").text(new Date(item.length).format("Y/m/d H:i:s") + (expired ? " (expired)" : "")),
+                        $("<td>").html(item.length == 0 ? "<span class='text-danger'>PERMANENT</span>" : new Date(item.length).format("Y/m/d H:i:s") + (expired ? " (expired)" : "")),
                         $("<td>").html(expired ? "None" : '<a id="unbanbtn" class="text-success" data-id="' + item.id + '">Unban</a>')
                     ).appendTo("#banlist > table > tbody");
                 });
