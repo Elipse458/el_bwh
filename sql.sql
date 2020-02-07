@@ -4,6 +4,7 @@ CREATE TABLE `bwh_bans` (
   `sender` varchar(60) NOT NULL,
   `length` datetime NULL,
   `reason` text NOT NULL,
+  `unbanned` TINYINT NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 );
 CREATE TABLE `bwh_warnings` (

@@ -37,10 +37,8 @@ Citizen.CreateThread(function() -- startup
     ESX.RegisterServerCallback("el_bwh:getWarnList",function(source,cb)
         local xPlayer = ESX.GetPlayerFromId(source)
         if isAdmin(xPlayer) then
-            local warnlist,namecache = {},{}
-            for k,v in ipairs(MySQL.Sync.fetchAll("SELECT * FROM bwh_warnings")) do
-                if namecache[v.sender]==nil then namecache[v.sender] = MySQL.Sync.fetchScalar("SELECT name FROM users WHERE identifier=@id",{["@id"]=v.sender}) end -- my shot at optimalization of db queries
-                v["sender_name"]=namecache[v.sender]
+            local warnlist = {}
+            for k,v in ipairs(MySQL.Sync.fetchAll("SELECT *,(SELECT name FROM users WHERE identifier=bwh_warnings.sender) AS sender_name,(SELECT name FROM users WHERE identifier=bwh_warnings.receiver) AS receiver_name FROM bwh_warnings")) do
                 table.insert(warnlist,v)
             end
             cb(json.encode(warnlist))
@@ -50,10 +48,11 @@ Citizen.CreateThread(function() -- startup
     ESX.RegisterServerCallback("el_bwh:getBanList",function(source,cb)
         local xPlayer = ESX.GetPlayerFromId(source)
         if isAdmin(xPlayer) then
-            local banlist,namecache = {},{}
-            for k,v in ipairs(MySQL.Sync.fetchAll("SELECT * FROM bwh_bans")) do
-                if namecache[v.sender]==nil then namecache[v.sender] = MySQL.Sync.fetchScalar("SELECT name FROM users WHERE identifier=@id",{["@id"]=v.sender}) end -- my shot at optimalization of db queries
-                v["sender_name"]=namecache[v.sender]
+            local banlist,receiver_namecache = {},{}
+            for k,v in ipairs(MySQL.Sync.fetchAll("SELECT *,(SELECT name FROM users WHERE identifier=bwh_bans.sender) AS sender_name FROM bwh_bans")) do
+                local identifier = json.decode(v.receiver)[1]
+                if not receiver_namecache[identifier] then receiver_namecache[identifier] = MySQL.Sync.fetchScalar("SELECT name FROM users WHERE identifier=@identifier",{["@identifier"]=identifier}) end
+                v.receiver_name = receiver_namecache[identifier]
                 table.insert(banlist,v)
             end
             cb(json.encode(banlist))
@@ -63,12 +62,12 @@ Citizen.CreateThread(function() -- startup
     ESX.RegisterServerCallback("el_bwh:unban",function(source,cb,id)
         local xPlayer = ESX.GetPlayerFromId(source)
         if isAdmin(xPlayer) then
-            MySQL.Async.execute("DELETE FROM bwh_bans WHERE id=@id",{["@id"]=id},function(rc)
+            MySQL.Async.execute("UPDATE bwh_bans SET unbanned=1 WHERE id=@id",{["@id"]=id},function(rc)
                 local bannedidentifier = "N/A"
                 for k,v in ipairs(bancache) do
                     if v.id==id then
                         bannedidentifier = v.receiver[1]
-                        table.remove(bancache,k)
+                        bancache[k].unbanned = true
                         break
                     end
                 end
@@ -106,16 +105,14 @@ end)
 
 function refreshBanCache()
     bancache={}
-    local namecache = {}
-    for k,v in ipairs(MySQL.Sync.fetchAll("SELECT id,receiver,sender,reason,UNIX_TIMESTAMP(length) AS length FROM bwh_bans")) do
-        if namecache[v.sender]==nil then namecache[v.sender] = MySQL.Sync.fetchScalar("SELECT name FROM users WHERE identifier=@id",{["@id"]=v.sender}) end -- my shot at optimalization of db queries
-        table.insert(bancache,{id=v.id,sender=v.sender,sender_name=namecache[v.sender],receiver=json.decode(v.receiver),reason=v.reason,length=v.length})
+    for k,v in ipairs(MySQL.Sync.fetchAll("SELECT id,receiver,sender,reason,UNIX_TIMESTAMP(length) AS length,(SELECT name FROM users WHERE identifier=bwh_bans.sender) AS sender_name,unbanned FROM bwh_bans")) do
+        table.insert(bancache,{id=v.id,sender=v.sender,sender_name=v.sender_name,receiver=json.decode(v.receiver),reason=v.reason,length=v.length,unbanned=v.unbanned==1})
     end
 end
 
 function sendToDiscord(msg)
     if Config.discord_webhook~=nil then
-        PerformHttpRequest(Config.discord_webhook, function(a,b,c)end, "POST", json.encode({embeds={{title="BWH Action Log",description=msg,color=65280,}}}), {["Content-Type"]="application/json"})
+        PerformHttpRequest(Config.discord_webhook, function(a,b,c)end, "POST", json.encode({embeds={{title="BWH Action Log",description=msg:gsub("%^%d",""),color=65280,}}}), {["Content-Type"]="application/json"})
     end
 end
 
@@ -123,14 +120,14 @@ function logAdmin(msg)
     for k,v in ipairs(ESX.GetPlayers()) do
         if isAdmin(ESX.GetPlayerFromId(v)) then
             TriggerClientEvent("chat:addMessage",v,{color={255,0,0},multiline=false,args={"BWH",msg}})
-            sendToDiscord(msg:gsub("%^%d",""))
+            sendToDiscord(msg)
         end
     end
 end
 
 function isBanned(identifiers)
     for _,ban in ipairs(bancache) do
-        if ban.length==nil or ban.length>os.time() then
+        if not ban.unbanned and (ban.length==nil or ban.length>os.time()) then
             for _,bid in ipairs(ban.receiver) do
                 for _,pid in ipairs(identifiers) do
                     if bid==pid then return true, ban end
@@ -198,6 +195,18 @@ function warnPlayer(xPlayer,xTarget,message,anon)
     TriggerClientEvent("el_bwh:receiveWarn",xTarget.source,anon and "" or xPlayer.getName(),message)
     logAdmin(("Admin ^1%s^7 warned ^1%s^7 (%s), Message: '%s'"):format(xPlayer.getName(),xTarget.getName(),xTarget.identifier,message))
 end
+
+AddEventHandler("el_bwh:ban",function(sender,target,reason,length,offline)
+    if source=="" then -- if it's from server only
+        banPlayer(sender,target,reason,length,offline)
+    end
+end)
+
+AddEventHandler("el_bwh:warn",function(sender,target,message,anon)
+    if source=="" then -- if it's from server only
+        warnPlayer(sender,target,message,anon)
+    end
+end)
 
 TriggerEvent('es:addCommand', 'assist', function(source, args, user)
     local reason = table.concat(args," ")
