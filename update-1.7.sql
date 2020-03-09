@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS `bwh_identifiers` ( `steam` VARCHAR(60) NOT NULL , `license` VARCHAR(60) NOT NULL , `ip` VARCHAR(60) NOT NULL , `name` VARCHAR(128) NOT NULL , `xbl` VARCHAR(60) NULL , `live` VARCHAR(60) NULL , `discord` VARCHAR(60) NULL , `fivem` VARCHAR(60) NULL, PRIMARY KEY (`steam`) );

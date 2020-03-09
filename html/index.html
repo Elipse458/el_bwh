@@ -11,7 +11,30 @@
 </head>
 
 <body>
+    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-body" id="toastmsg">PLACEHOLDER</div>
+    </div>
     <div class="container text-light">
+        <!-- CREDITS TO Jack Rugile @ CodePen https://codepen.io/jackrugile/pen/JddmaX -->
+        <div class="loader" style="display:none;">
+            <div class="loader-inner">
+                <div class="loader-line-wrap">
+                    <div class="loader-line"></div>
+                </div>
+                <div class="loader-line-wrap">
+                    <div class="loader-line"></div>
+                </div>
+                <div class="loader-line-wrap">
+                    <div class="loader-line"></div>
+                </div>
+                <div class="loader-line-wrap">
+                    <div class="loader-line"></div>
+                </div>
+                <div class="loader-line-wrap">
+                    <div class="loader-line"></div>
+                </div>
+            </div>
+        </div>
         <form id="ban" class="hideable" style="display:none;">
             <h1 class="text-center text-danger">Ban player</h1><br>
             <div class="form-check form-check-inline">
@@ -56,8 +79,12 @@
         <div id="warnlist" class="bg-dark hideable" style="display:none;">
             <h1 class="text-warning text-center" style="margin-top:25px;">Warning list</h1>
             <div class="row">
-                <div class="col-lg-9"></div>
-                <div class="col" style="margin-right:15px;">
+                <div class="col" style="float:left;margin-left:15px;">
+                    <nav>
+                        <ul class="pagination"></ul>
+                    </nav>
+                </div>
+                <div class="col col-lg-3" style="float:right;margin-right:15px;">
                     <input type="text" class="form-control" placeholder="Search..." id="warnsearch">
                 </div>
             </div><br>
@@ -76,8 +103,12 @@
         <div id="banlist" class="bg-dark hideable" style="display:none;">
             <h1 class="text-danger text-center" style="margin-top:25px;">Ban list</h1>
             <div class="row">
-                <div class="col-lg-9"></div>
-                <div class="col" style="margin-right:15px;">
+                <div class="col" style="float:left;margin-left:15px;">
+                    <nav>
+                        <ul class="pagination"></ul>
+                    </nav>
+                </div>
+                <div class="col col-lg-3" style="float:right;margin-right:15px;">
                     <input type="text" class="form-control" placeholder="Search..." id="bansearch">
                 </div>
             </div><br>

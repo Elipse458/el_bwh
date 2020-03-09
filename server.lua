@@ -1,16 +1,45 @@
 ESX = nil
-local bancache = {} -- id,sender,sender_name,receiver,reason,length
+local bancache,namecache = {},{}
 local open_assists,active_assists = {},{}
+
+function split(s, delimiter)result = {};for match in (s..delimiter):gmatch("(.-)"..delimiter) do table.insert(result, match) end return result end
 
 Citizen.CreateThread(function() -- startup
     TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
     while ESX==nil do Wait(0) end
     
     MySQL.ready(function()
+        refreshNameCache()
         refreshBanCache()
     end)
 
     sendToDiscord("Starting logger...")
+
+    print("[^1"..GetCurrentResourceName().."^7] Performing version check...")
+    PerformHttpRequest("https://api.elipse458.me/resources/checkupdates.php", function(a,b,c)
+        local data = json.decode(b)
+        if a~=200 then
+            print("[^1"..GetCurrentResourceName().."^7] Version check failed!")
+        else
+            if data and data.updateNeeded then
+                print("[^1"..GetCurrentResourceName().."^7] Outdated!")
+                print("[^1"..GetCurrentResourceName().."^7] Current version: 1.7 | New version: "..data.newVersion.." | Versions behind: "..data.versionsBehind)
+                print("[^1"..GetCurrentResourceName().."^7] Changelog:")
+                for k,v in ipairs(data.update.changelog) do
+                    print("- "..v)
+                end
+                print("[^1"..GetCurrentResourceName().."^7] Database update needed: "..(data.update.dbUpdateNeeded and "^4Yes^7" or "^1No^7"))
+                print("[^1"..GetCurrentResourceName().."^7] Config update needed: "..(data.update.configUpdateNeeded and "^4Yes^7" or "^1No^7"))
+                print("[^1"..GetCurrentResourceName().."^7] Update url: ^4"..data.update.releaseUrl.."^7")
+                if (type(data.versionsBehind)=="string" or data.versionsBehind>1) and data.update.dbUpdateNeeded then
+                    print("[^1"..GetCurrentResourceName().."^7] ^1!!^7 You are multiple versions behind, make sure you run update sql files (if any) from all new versions in order of release ^1!!^7")
+                end
+                sendToDiscord("Update found!\nUpdate url: "..data.update.releaseUrl.."\nCurrent version: 1.7\nNew version: "..data.newVersion.."\nVersions behind: "..data.versionsBehind)
+            else
+                print("[^1"..GetCurrentResourceName().."^7] No updates found!")
+            end
+        end
+    end, "POST", "resname=el_bwh&ver=1.7")
 
     ESX.RegisterServerCallback("el_bwh:ban", function(source,cb,target,reason,length,offline)
         if not target or not reason then return end
@@ -36,27 +65,56 @@ Citizen.CreateThread(function() -- startup
 
     ESX.RegisterServerCallback("el_bwh:getWarnList",function(source,cb)
         local xPlayer = ESX.GetPlayerFromId(source)
+        -- local start = GetGameTimer() -- debug
         if isAdmin(xPlayer) then
             local warnlist = {}
-            for k,v in ipairs(MySQL.Sync.fetchAll("SELECT *,(SELECT name FROM users WHERE identifier=bwh_warnings.sender) AS sender_name,(SELECT name FROM users WHERE identifier=bwh_warnings.receiver) AS receiver_name FROM bwh_warnings")) do
+            for k,v in ipairs(MySQL.Sync.fetchAll("SELECT * FROM bwh_warnings LIMIT @limit",{["@limit"]=Config.page_element_limit})) do
+                v.receiver_name=namecache[v.receiver]
+                v.sender_name=namecache[v.sender]
                 table.insert(warnlist,v)
             end
-            cb(json.encode(warnlist))
+            cb(json.encode(warnlist),MySQL.Sync.fetchScalar("SELECT CEIL(COUNT(id)/@limit) FROM bwh_warnings",{["@limit"]=Config.page_element_limit}))
         else logUnfairUse(xPlayer); cb(false) end
+        -- TriggerClientEvent("chat:addMessage",source,{multiline=false,args={"[^4DEBUG^7] ^1BWH",("Warnlist loading time: %sms"):format(GetGameTimer()-start)}}) -- debug
     end)
 
     ESX.RegisterServerCallback("el_bwh:getBanList",function(source,cb)
         local xPlayer = ESX.GetPlayerFromId(source)
+        -- local start = GetGameTimer() -- debug
         if isAdmin(xPlayer) then
-            local banlist,receiver_namecache = {},{}
-            for k,v in ipairs(MySQL.Sync.fetchAll("SELECT *,(SELECT name FROM users WHERE identifier=bwh_bans.sender) AS sender_name FROM bwh_bans")) do
-                local identifier = json.decode(v.receiver)[1]
-                if not receiver_namecache[identifier] then receiver_namecache[identifier] = MySQL.Sync.fetchScalar("SELECT name FROM users WHERE identifier=@identifier",{["@identifier"]=identifier}) end
-                v.receiver_name = receiver_namecache[identifier]
+            local data = MySQL.Sync.fetchAll("SELECT * FROM bwh_bans LIMIT @limit",{["@limit"]=Config.page_element_limit})
+            local banlist = {}
+            for k,v in ipairs(data) do
+                v.receiver_name = namecache[json.decode(v.receiver)[1]]
+                v.sender_name = namecache[v.sender]
                 table.insert(banlist,v)
             end
-            cb(json.encode(banlist))
+            cb(json.encode(banlist),MySQL.Sync.fetchScalar("SELECT CEIL(COUNT(id)/@limit) FROM bwh_bans",{["@limit"]=Config.page_element_limit}))
         else logUnfairUse(xPlayer); cb(false) end
+        -- TriggerClientEvent("chat:addMessage",source,{multiline=false,args={"[^4DEBUG^7] ^1BWH",("Banlist loading time: %sms"):format(GetGameTimer()-start)}}) -- debug
+    end)
+
+    ESX.RegisterServerCallback("el_bwh:getListData",function(source,cb,list,page)
+        local xPlayer = ESX.GetPlayerFromId(source)
+        if isAdmin(xPlayer) then
+            if list=="banlist" then
+                local banlist = {}
+                for k,v in ipairs(MySQL.Sync.fetchAll("SELECT * FROM bwh_bans LIMIT @limit OFFSET @offset",{["@limit"]=Config.page_element_limit,["@offset"]=Config.page_element_limit*(page-1)})) do
+                    v.receiver_name = namecache[json.decode(v.receiver)[1]]
+                    v.sender_name = namecache[v.sender]
+                    table.insert(banlist,v)
+                end
+                cb(json.encode(banlist))
+            else
+                local warnlist = {}
+                for k,v in ipairs(MySQL.Sync.fetchAll("SELECT * FROM bwh_warnings LIMIT @limit OFFSET @offset",{["@limit"]=Config.page_element_limit,["@offset"]=Config.page_element_limit*(page-1)})) do
+                    v.sender_name=namecache[v.sender]
+                    v.receiver_name=namecache[v.receiver]
+                    table.insert(warnlist,v)
+                end
+                cb(json.encode(warnlist))
+            end
+        else logUnfairUse(xPlayer); cb(nil) end
     end)
 
     ESX.RegisterServerCallback("el_bwh:unban",function(source,cb,id)
@@ -71,7 +129,7 @@ Citizen.CreateThread(function() -- startup
                         break
                     end
                 end
-                logAdmin(("Admin ^1%s^7 unbanned ^1%s^7 (%s)"):format(xPlayer.getName(),bannedidentifier~="N/A" and MySQL.Sync.fetchScalar("SELECT name FROM users WHERE identifier=@id",{["@id"]=bannedidentifier}) or "N/A",bannedidentifier))
+                logAdmin(("Admin ^1%s^7 unbanned ^1%s^7 (%s)"):format(xPlayer.getName(),(bannedidentifier~="N/A" and namecache[bannedidentifier]) and namecache[bannedidentifier] or "N/A",bannedidentifier))
                 cb(rc>0)
             end)
         else logUnfairUse(xPlayer); cb(false) end
@@ -79,11 +137,27 @@ Citizen.CreateThread(function() -- startup
 end)
 
 AddEventHandler("playerConnecting",function(name, setKick, def)
-    local banned, data = isBanned(GetPlayerIdentifiers(source))
-    if banned then
-        print(("Banned player %s (%s) tried to join, their ban expires on %s (Ban ID: #%s)"):format(GetPlayerName(source),data.receiver[1],data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.id))
-        local kickmsg = Config.banformat:format(data.reason,data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.sender_name,data.id)
-        if Config.backup_kick_method then DropPlayer(source,kickmsg) else def.done(kickmsg) end
+    local identifiers = GetPlayerIdentifiers(source)
+    if #identifiers>0 and identifiers[1]~=nil then
+        local banned, data = isBanned(identifiers)
+        namecache[identifiers[1]]=GetPlayerName(source)
+        if banned then
+            print(("[^1"..GetCurrentResourceName().."^7] Banned player %s (%s) tried to join, their ban expires on %s (Ban ID: #%s)"):format(GetPlayerName(source),data.receiver[1],data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.id))
+            local kickmsg = Config.banformat:format(data.reason,data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.sender_name,data.id)
+            if Config.backup_kick_method then DropPlayer(source,kickmsg) else def.done(kickmsg) end
+        else
+            local data = {["@name"]=GetPlayerName(source)}
+            for k,v in ipairs(identifiers) do
+                data["@"..split(v,":")[1]]=v
+            end
+            if not data["@steam"] then
+                print("[^1"..GetCurrentResourceName().."^7] Player connecting without steamid, skipping identifier storage")
+            else
+                MySQL.Async.execute("INSERT INTO `bwh_identifiers` (`steam`, `license`, `ip`, `name`, `xbl`, `live`, `discord`, `fivem`) VALUES (@steam, @license, @ip, @name, @xbl, @live, @discord, @fivem) ON DUPLICATE KEY UPDATE `license`=@license, `ip`=@ip, `name`=@name, `xbl`=@xbl, `live`=@live, `discord`=@discord, `fivem`=@fivem",data)
+            end
+        end
+    else
+        if Config.backup_kick_method then DropPlayer(source,"[BWH] No identifiers were found when connecting, please reconnect") else def.done("[BWH] No identifiers were found when connecting, please reconnect") end
     end
 end)
 
@@ -103,10 +177,17 @@ AddEventHandler("playerDropped",function(reason)
     end
 end)
 
+function refreshNameCache()
+    namecache={}
+    for k,v in ipairs(MySQL.Sync.fetchAll("SELECT steam,name FROM bwh_identifiers")) do
+        namecache[v.steam]=v.name
+    end
+end
+
 function refreshBanCache()
     bancache={}
-    for k,v in ipairs(MySQL.Sync.fetchAll("SELECT id,receiver,sender,reason,UNIX_TIMESTAMP(length) AS length,(SELECT name FROM users WHERE identifier=bwh_bans.sender) AS sender_name,unbanned FROM bwh_bans")) do
-        table.insert(bancache,{id=v.id,sender=v.sender,sender_name=v.sender_name,receiver=json.decode(v.receiver),reason=v.reason,length=v.length,unbanned=v.unbanned==1})
+    for k,v in ipairs(MySQL.Sync.fetchAll("SELECT id,receiver,sender,reason,UNIX_TIMESTAMP(length) AS length,unbanned FROM bwh_bans")) do
+        table.insert(bancache,{id=v.id,sender=v.sender,sender_name=namecache[v.sender]~=nil and namecache[v.sender] or "N/A",receiver=json.decode(v.receiver),reason=v.reason,length=v.length,unbanned=v.unbanned==1})
     end
 end
 
@@ -139,11 +220,10 @@ function isBanned(identifiers)
 end
 
 function isAdmin(xPlayer)
-    local admin = false
     for k,v in ipairs(Config.admin_groups) do
         if xPlayer.getGroup()==v then return true end
     end
-    return xPlayer.getPermissions()>=Config.admin_level
+    return false
 end
 
 function execOnAdmins(func)
@@ -159,25 +239,28 @@ end
 
 function logUnfairUse(xPlayer)
     if not xPlayer then return end
-    print((GetCurrentResourceName()..": Player %s (%s) tried to use an admin feature"):format(xPlayer.getName(),xPlayer.identifier))
+    print(("[^1"..GetCurrentResourceName().."^7] Player %s (%s) tried to use an admin feature"):format(xPlayer.getName(),xPlayer.identifier))
     logAdmin(("Player %s (%s) tried to use an admin feature"):format(xPlayer.getName(),xPlayer.identifier))
 end
 
 function banPlayer(xPlayer,xTarget,reason,length,offline)
-    local targetidentifiers,offlinename,timestring = nil,nil,nil
+    local targetidentifiers,offlinename,timestring,data = {},nil,nil,nil
     if offline then
-        data = MySQL.Sync.fetchAll("SELECT license,name FROM users WHERE identifier=@identifier",{["@identifier"]=xTarget})
+        data = MySQL.Sync.fetchAll("SELECT * FROM bwh_identifiers WHERE steam=@identifier",{["@identifier"]=xTarget})
         if #data<1 then
-            return false, "~r~Identifier is not in users database!"
+            return false, "~r~Identifier is not in identifiers database!"
         end
-        targetidentifiers = {xTarget,data[1].license} -- in this case xTarget is an identifier
         offlinename = data[1].name
+        for k,v in pairs(data[1]) do
+            if k~="name" then table.insert(targetidentifiers,v) end
+        end
     else
         targetidentifiers = GetPlayerIdentifiers(xTarget.source)
     end
+    if length=="" then length = nil end
     MySQL.Async.execute("INSERT INTO bwh_bans(id,receiver,sender,length,reason) VALUES(NULL,@receiver,@sender,@length,@reason)",{["@receiver"]=json.encode(targetidentifiers),["@sender"]=xPlayer.identifier,["@length"]=length,["@reason"]=reason},function(_)
         local banid = MySQL.Sync.fetchScalar("SELECT MAX(id) FROM bwh_bans")
-        logAdmin(("Player ^1%s^7 (%s) got banned by ^1%s^7, expiration: %s, reason: '%s'"..(offline and " (OFFLINE BAN)" or "")):format(offline and offlinename or xTarget.getName(),offline and targetidentifiers[1] or xTarget.identifier,xPlayer.getName(),length~=nil and length or "PERMANENT",reason))
+        logAdmin(("Player ^1%s^7 (%s) got banned by ^1%s^7, expiration: %s, reason: '%s'"..(offline and " (OFFLINE BAN)" or "")):format(offline and offlinename or xTarget.getName(),offline and data[1].steam or xTarget.identifier,xPlayer.getName(),length~=nil and length or "PERMANENT",reason))
         if length~=nil then
             timestring=length
             local year,month,day,hour,minute = string.match(length,"(%d+)/(%d+)/(%d+) (%d+):(%d+)")
@@ -185,8 +268,13 @@ function banPlayer(xPlayer,xTarget,reason,length,offline)
         end
         table.insert(bancache,{id=banid==nil and "1" or banid,sender=xPlayer.identifier,reason=reason,sender_name=xPlayer.getName(),receiver=targetidentifiers,length=length})
         if offline then xTarget = ESX.GetPlayerFromIdentifier(xTarget) end -- just in case the player is on the server, you never know
-        if xTarget then DropPlayer(xTarget.source,Config.banformat:format(reason,length~=nil and timestring or "PERMANENT",xPlayer.getName(),banid==nil and "1" or banid)) else return false, "~r~Unknown error (MySQL?)" end
-        return true
+        if xTarget then
+            TriggerClientEvent("el_bwh:gotBanned",xTarget.source, reason)
+            Citizen.SetTimeout(5000, function()
+                DropPlayer(xTarget.source,Config.banformat:format(reason,length~=nil and timestring or "PERMANENT",xPlayer.getName(),banid==nil and "1" or banid))
+            end)
+        else return false, "~r~Unknown error (MySQL?)" end
+        return true, ""
     end)
 end
 
@@ -264,7 +352,8 @@ TriggerEvent('es:addCommand', 'bwh', function(source, args, user)
         if args[1]=="ban" or args[1]=="warn" or args[1]=="warnlist" or args[1]=="banlist" then
             TriggerClientEvent("el_bwh:showWindow",source,args[1])
         elseif args[1]=="refresh" then
-            TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Refreshing ban cache..."}})
+            TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Refreshing ban & name cache..."}})
+            refreshNameCache()
             refreshBanCache()
         elseif args[1]=="assists" then
             local openassistsmsg,activeassistsmsg = "",""

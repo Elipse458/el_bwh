@@ -20,7 +20,7 @@ end
 RegisterNUICallback("ban", function(data,cb)
 	if not data.target or not data.reason then return end
 	ESX.TriggerServerCallback("el_bwh:ban",function(success,reason)
-		if success then ESX.ShowNotification("~g~Successfully banned player") else ESX.ShowNotification(reason) end
+		if success then ESX.ShowNotification("~g~Successfully banned player") else ESX.ShowNotification(reason) end -- dont ask why i did it this way, im a bit retarded
 	end, data.target, data.reason, data.length, data.offline)
 end)
 
@@ -38,8 +38,43 @@ RegisterNUICallback("unban", function(data,cb)
 	end, data.id)
 end)
 
+RegisterNUICallback("getListData", function(data,cb)
+	if not data.list or not data.page then cb(nil); return end
+	ESX.TriggerServerCallback("el_bwh:getListData",function(data)
+		cb(data)
+	end, data.list, data.page)
+end)
+
 RegisterNUICallback("hidecursor", function(data,cb)
 	SetNuiFocus(false, false)
+end)
+
+RegisterNetEvent("el_bwh:gotBanned")
+AddEventHandler("el_bwh:gotBanned",function(rsn)
+	Citizen.CreateThread(function()
+		local scaleform = RequestScaleformMovie("mp_big_message_freemode")
+		while not HasScaleformMovieLoaded(scaleform) do Citizen.Wait(0) end
+		BeginScaleformMovieMethod(scaleform, "SHOW_SHARD_WASTED_MP_MESSAGE")
+		PushScaleformMovieMethodParameterString("~r~BANNED")
+		PushScaleformMovieMethodParameterString(rsn)
+		PushScaleformMovieMethodParameterInt(5)
+		EndScaleformMovieMethod()
+		PlaySoundFrontend(-1, "LOSER", "HUD_AWARDS")
+		ClearDrawOrigin()
+		ESX.UI.HUD.SetDisplay(0)
+		while true do
+			Citizen.Wait(0)
+			DisableAllControlActions(0)
+			DisableFrontendThisFrame()
+			local ped = GetPlayerPed(-1)
+			ESX.UI.Menu.CloseAll()
+			SetEntityCoords(ped, 0, 0, 0, 0, 0, 0, false)
+			FreezeEntityPosition(ped, true)
+			DrawRect(0.0,0.0,2.0,2.0,0,0,0,255)
+			DrawScaleformMovieFullscreen(scaleform, 255, 255, 255, 255)
+		end
+		SetScaleformMovieAsNoLongerNeeded(scaleform)
+	end)
 end)
 
 RegisterNetEvent("el_bwh:receiveWarn")
@@ -103,8 +138,9 @@ AddEventHandler("el_bwh:showWindow",function(win)
 	if win=="ban" or win=="warn" then
 		SendNUIMessage({show=true,window=win,players=GetIndexedPlayerList()})
 	elseif win=="banlist" or win=="warnlist" then
-		ESX.TriggerServerCallback(win=="banlist" and "el_bwh:getBanList" or "el_bwh:getWarnList",function(list)
-			SendNUIMessage({show=true,window=win,list=list})
+		SendNUIMessage({loading=true,window=win})
+		ESX.TriggerServerCallback(win=="banlist" and "el_bwh:getBanList" or "el_bwh:getWarnList",function(list,pages)
+			SendNUIMessage({show=true,window=win,list=list,pages=pages})
 		end)
 	end
 	SetNuiFocus(true, true)
