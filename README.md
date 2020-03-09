@@ -47,24 +47,7 @@ To unban someone, go to the ban list and scroll far right to the "Actions" secti
 
 ## Important notes
 This bans **all** players identifiers, that means their ip,license,steam,discord,xbl ids will get banned  
-Offline bans only ban steam identifier and license because that's all that's stored in the db  
-If you rename the folder to something else than `el_bwh`, **it will break things**.  
-To rename it successfully you'll have to do some additional stuff as well. I also recommend to have the name in lowercase because it does some weird things if there's some upper case letters in the folder name.  
-To do this, open `html/script.js` and replace every occurence of `el_bwh` with your new folder name, it should only be these lines
-```
-$.post("http://el_bwh/ban", JSON.stringify({ target: target, reason: reason, length: length }));
-$.post("http://el_bwh/warn", JSON.stringify({ target: target, message: message, anon: anon }));
-$.post("http://el_bwh/unban", JSON.stringify({ id: $(this).data("id") }));
-$.post("http://el_bwh/hidecursor", JSON.stringify({}));
-```
-After you replace it, it should look like this
-```
-$.post("http://<YOUR FOLDER NAME>/ban", JSON.stringify({ target: target, reason: reason, length: length }));
-$.post("http://<YOUR FOLDER NAME>/warn", JSON.stringify({ target: target, message: message, anon: anon }));
-$.post("http://<YOUR FOLDER NAME>/unban", JSON.stringify({ id: $(this).data("id") }));
-$.post("http://<YOUR FOLDER NAME>/hidecursor", JSON.stringify({}));
-```
-
+Offline bans ban everything that's stored in the identifier db   
 If you don't like the current design (i don't blame you, i'm really not a designer), you can edit the `html/index.html` and `html/style.css` files to change the design to your liking
 
 If find any bugs, please join my [discord server](https://discord.gg/GbT49uH) and report it in the #bug-reports channel  
