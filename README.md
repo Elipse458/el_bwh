@@ -1,8 +1,8 @@
 # el_bwh
-FiveM Ban/Warning/Help-Assist System for ESX
+FiveM Ban/Warning/Help-Assist System for ESX (Unoffical New Version Development)
 
 ## Installation
-1. Download the [resource](https://github.com/Elipse458/el_bwh/archive/master.zip)
+1. Download the [resource](https://github.com/nap14hockey/el_bwh/archive/master.zip)
 2. Rename it to `el_bwh` and put it in your resources folder
 3. Import sql.sql into your database
 4. Edit the config to your liking
@@ -48,7 +48,6 @@ To unban someone, go to the ban list and scroll far right to the "Actions" secti
 ## Important notes
 This bans **all** players identifiers, that means their ip,license,steam,discord,xbl ids will get banned  
 Offline bans ban everything that's stored in the identifier db   
-If you don't like the current design (i don't blame you, i'm really not a designer), you can edit the `html/index.html` and `html/style.css` files to change the design to your liking
+If you don't like the current design, you can edit the `html/index.html` and `html/style.css` files to change the design to your liking
 
-If find any bugs, please join my [discord server](https://discord.gg/GbT49uH) and report it in the #bug-reports channel  
-If you like my work, please check out [my page](https://elipse458.me), i'll probably release a few more things if i have the time and feel like it
+THIS IS NOT AN OFFICAL VERSION.  DO NOT CONTACT ECLIPSE WITH REGARDS TO THIS FORK.

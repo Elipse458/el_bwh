@@ -170,9 +170,10 @@ if Config.assist_keys then
 		end
 	end)
 end
-
-TriggerEvent('chat:addSuggestion', '/decassist', 'Hide assist popup',{})
-TriggerEvent('chat:addSuggestion', '/assist', 'Request help from admins',{{name="Reason", help="Why do you need help?"}})
-TriggerEvent('chat:addSuggestion', '/cassist', 'Cancel your pending help request',{})
-TriggerEvent('chat:addSuggestion', '/finassist', 'Finish assist and tp back',{})
-TriggerEvent('chat:addSuggestion', '/accassist', 'Accept a players help request', {{name="Player ID", help="ID of the player you want to help"}})
+Citizen.CreateThread(function()
+	TriggerEvent('chat:addSuggestion', '/decassist', 'Hide assist popup',{})
+	TriggerEvent('chat:addSuggestion', '/assist', 'Request help from admins',{{name="Reason", help="Why do you need help?"}})
+	TriggerEvent('chat:addSuggestion', '/cassist', 'Cancel your pending help request',{})
+	TriggerEvent('chat:addSuggestion', '/finassist', 'Finish assist and tp back',{})
+	TriggerEvent('chat:addSuggestion', '/accassist', 'Accept a players help request', {{name="Player ID", help="ID of the player you want to help"}})
+end)

@@ -296,7 +296,7 @@ AddEventHandler("el_bwh:warn",function(sender,target,message,anon)
     end
 end)
 
-TriggerEvent('es:addCommand', 'assist', function(source, args, user)
+RegisterCommand('assist', function(source, args, user)
     local reason = table.concat(args," ")
     if reason=="" or not reason then TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","Please specify a reason"}}); return end
     if not open_assists[source] and not active_assists[source] then
@@ -318,7 +318,7 @@ TriggerEvent('es:addCommand', 'assist', function(source, args, user)
     end
 end)
 
-TriggerEvent('es:addCommand', 'cassist', function(source, args, user)
+RegisterCommand('cassist', function(source, args, user)
     if open_assists[source] then
         open_assists[source]=nil
         TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Your request was successfuly cancelled"}})
@@ -328,7 +328,7 @@ TriggerEvent('es:addCommand', 'cassist', function(source, args, user)
     end
 end)
 
-TriggerEvent('es:addCommand', 'finassist', function(source, args, user)
+RegisterCommand('finassist', function(source, args, user)
     local xPlayer = ESX.GetPlayerFromId(source)
     if isAdmin(xPlayer) then
         local found = false
@@ -346,7 +346,7 @@ TriggerEvent('es:addCommand', 'finassist', function(source, args, user)
     end
 end)
 
-TriggerEvent('es:addCommand', 'bwh', function(source, args, user)
+RegisterCommand('bwh', function(source, args, user)
     local xPlayer = ESX.GetPlayerFromId(source)
     if isAdmin(xPlayer) then
         if args[1]=="ban" or args[1]=="warn" or args[1]=="warnlist" or args[1]=="banlist" then
@@ -398,7 +398,7 @@ function acceptAssist(xPlayer,target)
     end
 end
 
-TriggerEvent('es:addCommand', 'accassist', function(source, args, user)
+RegisterCommand('accassist', function(source, args, user)
     local xPlayer = ESX.GetPlayerFromId(source)
     local target = tonumber(args[1])
     acceptAssist(xPlayer,target)
