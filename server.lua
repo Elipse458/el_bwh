@@ -65,7 +65,6 @@ Citizen.CreateThread(function() -- startup
 
     ESX.RegisterServerCallback("el_bwh:getWarnList",function(source,cb)
         local xPlayer = ESX.GetPlayerFromId(source)
-        -- local start = GetGameTimer() -- debug
         if isAdmin(xPlayer) then
             local warnlist = {}
             for k,v in ipairs(MySQL.Sync.fetchAll("SELECT * FROM bwh_warnings LIMIT @limit",{["@limit"]=Config.page_element_limit})) do
@@ -75,12 +74,10 @@ Citizen.CreateThread(function() -- startup
             end
             cb(json.encode(warnlist),MySQL.Sync.fetchScalar("SELECT CEIL(COUNT(id)/@limit) FROM bwh_warnings",{["@limit"]=Config.page_element_limit}))
         else logUnfairUse(xPlayer); cb(false) end
-        -- TriggerClientEvent("chat:addMessage",source,{multiline=false,args={"[^4DEBUG^7] ^1BWH",("Warnlist loading time: %sms"):format(GetGameTimer()-start)}}) -- debug
     end)
 
     ESX.RegisterServerCallback("el_bwh:getBanList",function(source,cb)
         local xPlayer = ESX.GetPlayerFromId(source)
-        -- local start = GetGameTimer() -- debug
         if isAdmin(xPlayer) then
             local data = MySQL.Sync.fetchAll("SELECT * FROM bwh_bans LIMIT @limit",{["@limit"]=Config.page_element_limit})
             local banlist = {}
@@ -91,7 +88,6 @@ Citizen.CreateThread(function() -- startup
             end
             cb(json.encode(banlist),MySQL.Sync.fetchScalar("SELECT CEIL(COUNT(id)/@limit) FROM bwh_bans",{["@limit"]=Config.page_element_limit}))
         else logUnfairUse(xPlayer); cb(false) end
-        -- TriggerClientEvent("chat:addMessage",source,{multiline=false,args={"[^4DEBUG^7] ^1BWH",("Banlist loading time: %sms"):format(GetGameTimer()-start)}}) -- debug
     end)
 
     ESX.RegisterServerCallback("el_bwh:getListData",function(source,cb,list,page)
@@ -134,6 +130,15 @@ Citizen.CreateThread(function() -- startup
             end)
         else logUnfairUse(xPlayer); cb(false) end
     end)
+end)
+
+RegisterServerEvent('el_bwh:backupcheck')
+AddEventHandler('el_bwh:backupcheck', function(source)
+    local identifiers = GetPlayerIdentifiers(source)
+	local banned = isBanned(identifiers)
+    if banned then
+        DropPlayer(source, "Ban bypass detected, don’t join back!")
+    end
 end)
 
 AddEventHandler("playerConnecting",function(name, setKick, def)
@@ -192,7 +197,7 @@ function refreshBanCache()
 end
 
 function sendToDiscord(msg)
-    if Config.discord_webhook~=nil then
+    if Config.discord_webhook ~= "" then
         PerformHttpRequest(Config.discord_webhook, function(a,b,c)end, "POST", json.encode({embeds={{title="BWH Action Log",description=msg:gsub("%^%d",""),color=65280,}}}), {["Content-Type"]="application/json"})
     end
 end
@@ -296,7 +301,7 @@ AddEventHandler("el_bwh:warn",function(sender,target,message,anon)
     end
 end)
 
-TriggerEvent('es:addCommand', 'assist', function(source, args, user)
+RegisterCommand("assist", function(source, args, rawCommand)
     local reason = table.concat(args," ")
     if reason=="" or not reason then TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","Please specify a reason"}}); return end
     if not open_assists[source] and not active_assists[source] then
@@ -318,7 +323,7 @@ TriggerEvent('es:addCommand', 'assist', function(source, args, user)
     end
 end)
 
-TriggerEvent('es:addCommand', 'cassist', function(source, args, user)
+RegisterCommand("cassist", function(source, args, rawCommand)
     if open_assists[source] then
         open_assists[source]=nil
         TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Your request was successfuly cancelled"}})
@@ -328,7 +333,7 @@ TriggerEvent('es:addCommand', 'cassist', function(source, args, user)
     end
 end)
 
-TriggerEvent('es:addCommand', 'finassist', function(source, args, user)
+RegisterCommand("finassist", function(source, args, rawCommand)
     local xPlayer = ESX.GetPlayerFromId(source)
     if isAdmin(xPlayer) then
         local found = false
@@ -346,7 +351,7 @@ TriggerEvent('es:addCommand', 'finassist', function(source, args, user)
     end
 end)
 
-TriggerEvent('es:addCommand', 'bwh', function(source, args, user)
+RegisterCommand("bwh", function(source, args, rawCommand)
     local xPlayer = ESX.GetPlayerFromId(source)
     if isAdmin(xPlayer) then
         if args[1]=="ban" or args[1]=="warn" or args[1]=="warnlist" or args[1]=="banlist" then
@@ -398,7 +403,7 @@ function acceptAssist(xPlayer,target)
     end
 end
 
-TriggerEvent('es:addCommand', 'accassist', function(source, args, user)
+RegisterCommand("accassist", function(source, args, rawCommand)
     local xPlayer = ESX.GetPlayerFromId(source)
     local target = tonumber(args[1])
     acceptAssist(xPlayer,target)
