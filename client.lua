@@ -1,5 +1,5 @@
 ESX = nil
-local pos_before_assist,assisting,assist_target,last_assist = nil, false, nil, nil
+local pos_before_assist,assisting,assist_target,last_assist,IsFirstSpawn = nil, false, nil, nil, true
 
 Citizen.CreateThread(function()
 	while ESX == nil do
@@ -47,6 +47,13 @@ end)
 
 RegisterNUICallback("hidecursor", function(data,cb)
 	SetNuiFocus(false, false)
+end)
+
+AddEventHandler("playerSpawned", function(spawn)
+    if IsFirstSpawn and Config.backup_kick_method then
+        TriggerServerEvent("el_bwh:backupcheck")
+        IsFirstSpawn = false
+    end
 end)
 
 RegisterNetEvent("el_bwh:gotBanned")
@@ -150,16 +157,13 @@ RegisterCommand("decassist",function(a,b,c)
 	TriggerEvent("el_bwh:hideAssistPopup")
 end, false)
 
-if Config.assist_keys then
+if Config.assist_keys.enable then
 	Citizen.CreateThread(function()
 		while true do
 			Citizen.Wait(0)
 			if IsControlJustPressed(0, Config.assist_keys.accept) then
-				if not last_assist then
-					ESX.ShowNotification("~r~Noone requested assistance yet")
-				elseif not NetworkIsPlayerActive(GetPlayerFromServerId(last_assist)) then
-					ESX.ShowNotification("~r~The player that requested assistance is not online anymore")
-					last_assist=nil
+				if not NetworkIsPlayerActive(GetPlayerFromServerId(last_assist)) then
+					last_assist = nil
 				else
 					TriggerServerEvent("el_bwh:acceptAssistKey",last_assist)
 				end
