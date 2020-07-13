@@ -1,1 +1,0 @@
-ALTER TABLE `bwh_bans` ADD `unbanned` TINYINT NOT NULL DEFAULT '0' AFTER `reason`;
