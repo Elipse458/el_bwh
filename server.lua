@@ -116,7 +116,7 @@ AddEventHandler('el_bwh:backupcheck', function()
     end
 end)
 
-AddEventHandler("playerConnecting",function(name, setKickReason, def)
+AddEventHandler("playerConnecting",function(name, setKick, def)
     local identifiers = GetPlayerIdentifiers(source)
     if #identifiers>0 and identifiers[1]~=nil then
         local banned, data = isBanned(identifiers)
