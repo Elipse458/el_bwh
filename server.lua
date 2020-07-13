@@ -1,4 +1,5 @@
 ESX = nil
+local discord_webhook = "" -- paste your discord webhook between the quotes if you want to enable discord logs.
 local bancache,namecache = {},{}
 local open_assists,active_assists = {},{}
 
@@ -13,33 +14,7 @@ Citizen.CreateThread(function() -- startup
         refreshBanCache()
     end)
 
-    sendToDiscord("Starting logger...")
-
-    print("[^1"..GetCurrentResourceName().."^7] Performing version check...")
-    PerformHttpRequest("https://api.elipse458.me/resources/checkupdates.php", function(a,b,c)
-        if a~=200 then
-            print("[^1"..GetCurrentResourceName().."^7] Version check failed!")
-        else
-            local data = json.decode(b)
-            if data and data.updateNeeded then
-                print("[^1"..GetCurrentResourceName().."^7] Outdated!")
-                print("[^1"..GetCurrentResourceName().."^7] Current version: 1.7 | New version: "..data.newVersion.." | Versions behind: "..data.versionsBehind)
-                print("[^1"..GetCurrentResourceName().."^7] Changelog:")
-                for k,v in ipairs(data.update.changelog) do
-                    print("- "..v)
-                end
-                print("[^1"..GetCurrentResourceName().."^7] Database update needed: "..(data.update.dbUpdateNeeded and "^4Yes^7" or "^1No^7"))
-                print("[^1"..GetCurrentResourceName().."^7] Config update needed: "..(data.update.configUpdateNeeded and "^4Yes^7" or "^1No^7"))
-                print("[^1"..GetCurrentResourceName().."^7] Update url: ^4"..data.update.releaseUrl.."^7")
-                if (type(data.versionsBehind)=="string" or data.versionsBehind>1) and data.update.dbUpdateNeeded then
-                    print("[^1"..GetCurrentResourceName().."^7] ^1!!^7 You are multiple versions behind, make sure you run update sql files (if any) from all new versions in order of release ^1!!^7")
-                end
-                sendToDiscord("Update found!\nUpdate url: "..data.update.releaseUrl.."\nCurrent version: 1.7\nNew version: "..data.newVersion.."\nVersions behind: "..data.versionsBehind)
-            else
-                print("[^1"..GetCurrentResourceName().."^7] No updates found!")
-            end
-        end
-    end, "POST", "resname=el_bwh&ver=1.7")
+    sendToDiscord("el_bwh has been started...")
 
     ESX.RegisterServerCallback("el_bwh:ban", function(source,cb,target,reason,length,offline)
         if not target or not reason then return end
@@ -197,8 +172,8 @@ function refreshBanCache()
 end
 
 function sendToDiscord(msg)
-    if Config.discord_webhook ~= "" then
-        PerformHttpRequest(Config.discord_webhook, function(a,b,c)end, "POST", json.encode({embeds={{title="BWH Action Log",description=msg:gsub("%^%d",""),color=65280,}}}), {["Content-Type"]="application/json"})
+    if discord_webhook ~= "" then
+        PerformHttpRequest(discord_webhook, function(a,b,c)end, "POST", json.encode({embeds={{title="BWH Action Log",description=msg:gsub("%^%d",""),color=65280,}}}), {["Content-Type"]="application/json"})
     end
 end
 
@@ -415,17 +390,3 @@ AddEventHandler("el_bwh:acceptAssistKey",function(target)
     local _source = source
     acceptAssist(ESX.GetPlayerFromId(_source),target)
 end)
-
-if Config.enable_ban_json or Config.enable_warning_json then
-    SetHttpHandler(function(req,res)
-        if req.path=="/bans.json" and Config.enable_ban_json then
-            MySQL.Async.fetchAll("SELECT * FROM bwh_bans",{},function(data)
-                res.send(json.encode(data))
-            end)
-        elseif req.path=="/warnings.json" and Config.enable_warning_json then
-            MySQL.Async.fetchAll("SELECT * FROM bwh_warnings",{},function(data)
-                res.send(json.encode(data))
-            end)
-        end
-    end)
-end
