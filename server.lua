@@ -108,9 +108,9 @@ Citizen.CreateThread(function() -- startup
 end)
 
 RegisterServerEvent('el_bwh:backupcheck')
-AddEventHandler('el_bwh:backupcheck', function(source)
+AddEventHandler('el_bwh:backupcheck', function()
     local identifiers = GetPlayerIdentifiers(source)
-	local banned = isBanned(identifiers)
+    local banned = isBanned(identifiers)
     if banned then
         DropPlayer(source, "Ban bypass detected, don’t join back!")
     end
@@ -134,7 +134,7 @@ AddEventHandler("playerConnecting",function(name, setKickReason, def)
 	        if Config.kick_without_steam then
 		    print("[^1"..GetCurrentResourceName().."^7] Player connecting without steamid, removing player from server.")
 		    CancelEvent()
-                    setKickReason("You need to have steam open to play on this server.")
+                    setKick("You need to have steam open to play on this server.")
 		else
                     print("[^1"..GetCurrentResourceName().."^7] Player connecting without steamid, skipping identifier storage.")
 		end
