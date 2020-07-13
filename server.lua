@@ -131,13 +131,13 @@ AddEventHandler("playerConnecting",function(name, setKick, def)
                 data["@"..split(v,":")[1]]=v
             end
             if not data["@steam"] then
-			    if Config.kick_without_steam then
-				    print("[^1"..GetCurrentResourceName().."^7] Player connecting without steamid, removing player from server.")
-					CancelEvent()
+	        if Config.kick_without_steam then
+		    print("[^1"..GetCurrentResourceName().."^7] Player connecting without steamid, removing player from server.")
+		    CancelEvent()
                     setKickReason("You need to have steam open to play on this server.")
-				else
+		else
                     print("[^1"..GetCurrentResourceName().."^7] Player connecting without steamid, skipping identifier storage.")
-				end
+		end
             else
                 MySQL.Async.execute("INSERT INTO `bwh_identifiers` (`steam`, `license`, `ip`, `name`, `xbl`, `live`, `discord`, `fivem`) VALUES (@steam, @license, @ip, @name, @xbl, @live, @discord, @fivem) ON DUPLICATE KEY UPDATE `license`=@license, `ip`=@ip, `name`=@name, `xbl`=@xbl, `live`=@live, `discord`=@discord, `fivem`=@fivem",data)
             end
