@@ -133,8 +133,7 @@ AddEventHandler("playerConnecting",function(name, setKick, def)
             if not data["@steam"] then
 	        if Config.kick_without_steam then
 		    print("[^1"..GetCurrentResourceName().."^7] Player connecting without steamid, removing player from server.")
-		    CancelEvent()
-                    setKick("You need to have steam open to play on this server.")
+		    def.done("You need to have steam open to play on this server.")
 		else
                     print("[^1"..GetCurrentResourceName().."^7] Player connecting without steamid, skipping identifier storage.")
 		end
