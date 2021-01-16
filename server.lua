@@ -126,7 +126,12 @@ AddEventHandler("playerConnecting",function(name, setKick, def)
             local kickmsg = Config.banformat:format(data.reason,data.length and os.date("%Y-%m-%d %H:%M",data.length) or "PERMANENT",data.sender_name,data.id)
             if Config.backup_kick_method then DropPlayer(source,kickmsg) else def.done(kickmsg) end
         else
-            local data = {["@name"]=GetPlayerName(source)}
+            local playername = GetPlayerName(source)
+            local saneplayername = "Adjusted Playername"
+            if string.gsub(playername, "[^a-zA-Z0-9]", "") ~= "" then
+                saneplayername = string.gsub(playername, "[^a-zA-Z0-9 ]", "")
+            end
+            local data = {["@name"]=saneplayername}
             for k,v in ipairs(identifiers) do
                 data["@"..split(v,":")[1]]=v
             end
