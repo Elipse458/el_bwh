@@ -153,7 +153,7 @@ AddEventHandler("el_bwh:showWindow",function(win)
 	SetNuiFocus(true, true)
 end)
 
-RegisterCommand("decassist",function(a,b,c)
+RegisterCommand("decreport",function(a,b,c)
 	TriggerEvent("el_bwh:hideAssistPopup")
 end, false)
 
@@ -176,9 +176,9 @@ if Config.assist_keys.enable then
 end
 
 Citizen.CreateThread(function()
-    TriggerEvent('chat:addSuggestion', '/decassist', 'Hide assist popup',{})
-    TriggerEvent('chat:addSuggestion', '/assist', 'Request help from admins',{{name="Reason", help="Why do you need help?"}})
-    TriggerEvent('chat:addSuggestion', '/cassist', 'Cancel your pending help request',{})
-    TriggerEvent('chat:addSuggestion', '/finassist', 'Finish assist and tp back',{})
-    TriggerEvent('chat:addSuggestion', '/accassist', 'Accept a players help request', {{name="Player ID", help="ID of the player you want to help"}})
+    TriggerEvent('chat:addSuggestion', '/decreport', 'Hide report popup',{})
+    TriggerEvent('chat:addSuggestion', '/report', 'Request help from admins',{{name="Reason", help="Why do you need help?"}})
+    TriggerEvent('chat:addSuggestion', '/creport', 'Cancel your pending help request',{})
+    TriggerEvent('chat:addSuggestion', '/finreport', 'Finish report and tp back',{})
+    TriggerEvent('chat:addSuggestion', '/accreport', 'Accept a players help request', {{name="Player ID", help="ID of the player you want to help"}})
 end)
