@@ -9,14 +9,6 @@ Citizen.CreateThread(function()
 	SetNuiFocus(false, false)
 end)
 
-function GetIndexedPlayerList()
-	local players = {}
-	for k,v in ipairs(GetActivePlayers()) do
-		players[tostring(GetPlayerServerId(v))]=GetPlayerName(v)..(v==PlayerId() and " (self)" or "")
-	end
-	return json.encode(players)
-end
-
 RegisterNUICallback("ban", function(data,cb)
 	if not data.target or not data.reason then return end
 	ESX.TriggerServerCallback("el_bwh:ban",function(success,reason)
@@ -107,21 +99,22 @@ AddEventHandler("el_bwh:receiveWarn",function(sender,message)
 end)
 
 RegisterNetEvent("el_bwh:requestedAssist")
-AddEventHandler("el_bwh:requestedAssist",function(t)
-	SendNUIMessage({show=true,window="assistreq",data=Config.popassistformat:format(GetPlayerName(GetPlayerFromServerId(t)),t)})
+AddEventHandler("el_bwh:requestedAssist",function(tn,t)
+	SendNUIMessage({show=true,window="assistreq",template=Config.popassistformat,data={tn,t}})
 	last_assist=t
 end)
 
 RegisterNetEvent("el_bwh:acceptedAssist")
-AddEventHandler("el_bwh:acceptedAssist",function(t)
+AddEventHandler("el_bwh:acceptedAssist",function(t,pos)
 	if assisting then return end
 	local target = GetPlayerFromServerId(t)
 	if target then
+		if not pos then pos = NetworkGetPlayerCoords(target) end
 		local ped = GetPlayerPed(-1)
 		pos_before_assist = GetEntityCoords(ped)
 		assisting = true
 		assist_target = t
-		ESX.Game.Teleport(ped,GetEntityCoords(GetPlayerPed(target))+vector3(0,0.5,0))
+		ESX.Game.Teleport(ped,pos+vector3(0,0.5,0))
 	end
 end)
 
@@ -143,7 +136,9 @@ end)
 RegisterNetEvent("el_bwh:showWindow")
 AddEventHandler("el_bwh:showWindow",function(win)
 	if win=="ban" or win=="warn" then
-		SendNUIMessage({show=true,window=win,players=GetIndexedPlayerList()})
+		ESX.TriggerServerCallback("el_bwh:getIndexedPlayerList",function(indexedPList)
+			SendNUIMessage({show=true,window=win,players=indexedPList})
+		end)
 	elseif win=="banlist" or win=="warnlist" then
 		SendNUIMessage({loading=true,window=win})
 		ESX.TriggerServerCallback(win=="banlist" and "el_bwh:getBanList" or "el_bwh:getWarnList",function(list,pages)

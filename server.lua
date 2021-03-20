@@ -105,6 +105,16 @@ Citizen.CreateThread(function() -- startup
             end)
         else logUnfairUse(xPlayer); cb(false) end
     end)
+    ESX.RegisterServerCallback("el_bwh:getIndexedPlayerList",function(source,cb)
+        local xPlayer = ESX.GetPlayerFromId(source)
+        if isAdmin(xPlayer) then
+        	local players = {}
+        	for k,v in ipairs(ESX.GetPlayers()) do
+        		players[tostring(v)]=GetPlayerName(v)..(v==source and " (self)" or "")
+        	end
+        	cb(json.encode(players))
+        else logUnfairUse(xPlayer); cb(false) end
+    end)
 end)
 
 RegisterServerEvent('el_bwh:backupcheck')
@@ -290,7 +300,7 @@ RegisterCommand("assist", function(source, args, rawCommand)
     local reason = table.concat(args," ")
     if reason=="" or not reason then TriggerClientEvent("chat:addMessage",source,{color={255,0,0},multiline=false,args={"BWH","Please specify a reason"}}); return end
     if not open_assists[source] and not active_assists[source] then
-        local ac = execOnAdmins(function(admin) TriggerClientEvent("el_bwh:requestedAssist",admin,source); TriggerClientEvent("chat:addMessage",admin,{color={0,255,255},multiline=Config.chatassistformat:find("\n")~=nil,args={"BWH",Config.chatassistformat:format(GetPlayerName(source),source,reason)}}) end)
+        local ac = execOnAdmins(function(admin) TriggerClientEvent("el_bwh:requestedAssist",admin,GetPlayerName(source),source); TriggerClientEvent("chat:addMessage",admin,{color={0,255,255},multiline=Config.chatassistformat:find("\n")~=nil,args={"BWH",Config.chatassistformat:format(GetPlayerName(source),source,reason)}}) end)
         if ac>0 then
             open_assists[source]=reason
             Citizen.SetTimeout(120000,function()
@@ -375,7 +385,8 @@ function acceptAssist(xPlayer,target)
         if open_assists[target] and not active_assists[target] then
             open_assists[target]=nil
             active_assists[target]=source
-            TriggerClientEvent("el_bwh:acceptedAssist",source,target)
+            local coords = (GetConvar("onesync",false) or GetConvar("onesync_enableInfinity",false)) and GetEntityCoords(GetPlayerPed(target)) or nil
+            TriggerClientEvent("el_bwh:acceptedAssist",source,target,coords)
             TriggerClientEvent("el_bwh:hideAssistPopup",source)
             TriggerClientEvent("chat:addMessage",source,{color={0,255,0},multiline=false,args={"BWH","Teleporting to player..."}})
         elseif not open_assists[target] and active_assists[target] and active_assists[target]~=source then

@@ -1,9 +1,9 @@
-fx_version 'bodacious'
+fx_version 'adamant'
 game 'gta5'
 
 author 'Elipse458'
 description 'el_bwh'
-version '1.7'
+version '1.7.1'
 
 ui_page 'html/index.html'
 

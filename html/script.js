@@ -8,6 +8,10 @@ function toggle(window, state) {
     }
 }
 
+function escapeUnsafeString(unsafe = "") {
+    return new String(unsafe).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
 function searchList(w, input) {
     $("#" + w + " > table > tbody > tr").each(function(a) {
         if (!input.trim()) {
@@ -119,7 +123,7 @@ $("body").on("click", ".page-link", function() {
                 $("<tr" + (expired ? " class='text-muted'" : "") + ">").append(
                     $("<td>").text(item.id),
                     $("<td>").text((item.sender_name || "UNKNOWN") + " (" + item.sender + ")"),
-                    $("<td>").html("<a data-toggle='collapse' data-target='#reccol" + i + "' aria-expanded='false'><span>" + (item.receiver_name || "UNKNOWN") + " (" + receiver[0] + ")</span> <i class='arrow'></i></a><br><div class='collapse' id='reccol" + i + "'>" + receiver.slice(1, receiver.length).join("<br>") + "</div>"),
+                    $("<td>").html("<a data-toggle='collapse' data-target='#reccol" + i + "' aria-expanded='false'><span>" + (escapeUnsafeString(item.receiver_name) || "UNKNOWN") + " (" + receiver[0] + ")</span> <i class='arrow'></i></a><br><div class='collapse' id='reccol" + i + "'>" + receiver.slice(1, receiver.length).join("<br>") + "</div>"),
                     $("<td>").text(item.reason),
                     $("<td id='expire'>").html((item.length == 0 ? "<span class='text-danger'>PERMANENT</span>" : new Date(item.length).format("Y/m/d H:i:s")) + (expired ? (item.unbanned ? " (unbanned)" : " (expired)") : "")),
                     $("<td>").html(expired ? "None" : '<a id="unbanbtn" class="text-success" data-id="' + item.id + '">Unban</a>')
@@ -161,7 +165,18 @@ $(function() {
             $(".loader").show();
         }
         if (event.data.show) {
-            toggle(event.data.window, true);
+            if (event.data.window == "assistreq") {
+                if (reqhidetimeout !== undefined) {
+                    clearTimeout(reqhidetimeout);
+                    reqhidetimeout = undefined;
+                }
+                $("#assistreq").html(event.data.template.replace("%s", escapeUnsafeString(event.data.data[0])).replace("%s", escapeUnsafeString(event.data.data[1])));
+                $("#assistreq").show();
+                reqhidetimeout = setTimeout(function() {
+                    $("#assistreq").hide();
+                }, 120000);
+            } else
+                toggle(event.data.window, true);
             page = 1;
             $(".pagination").empty();
             $("#bansearch,#warnsearch").val("");
@@ -181,7 +196,7 @@ $(function() {
                     $("<tr" + (expired ? " class='text-muted'" : "") + ">").append(
                         $("<td>").text(item.id),
                         $("<td>").text((item.sender_name || "UNKNOWN") + " (" + item.sender + ")"),
-                        $("<td>").html("<a data-toggle='collapse' data-target='#reccol" + i + "' aria-expanded='false'><span>" + (item.receiver_name || "UNKNOWN") + " (" + receiver[0] + ")</span> <i class='arrow'></i></a><br><div class='collapse' id='reccol" + i + "'>" + receiver.slice(1, receiver.length).join("<br>") + "</div>"),
+                        $("<td>").html("<a data-toggle='collapse' data-target='#reccol" + i + "' aria-expanded='false'><span>" + (escapeUnsafeString(item.receiver_name) || "UNKNOWN") + " (" + receiver[0] + ")</span> <i class='arrow'></i></a><br><div class='collapse' id='reccol" + i + "'>" + receiver.slice(1, receiver.length).join("<br>") + "</div>"),
                         $("<td>").text(item.reason),
                         $("<td id='expire'>").html((item.length == 0 ? "<span class='text-danger'>PERMANENT</span>" : new Date(item.length).format("Y/m/d H:i:s")) + (expired ? (item.unbanned ? " (unbanned)" : " (expired)") : "")),
                         $("<td>").html(expired ? "None" : '<a id="unbanbtn" class="text-success" data-id="' + item.id + '">Unban</a>')
@@ -202,16 +217,6 @@ $(function() {
                     ).appendTo("#warnlist > table > tbody");
                 });
                 $(".loader").hide();
-            } else if (event.data.window == "assistreq") {
-                if (reqhidetimeout !== undefined) {
-                    clearTimeout(reqhidetimeout);
-                    reqhidetimeout = undefined;
-                }
-                $("#assistreq").html(event.data.data);
-                $("#assistreq").show();
-                reqhidetimeout = setTimeout(function() {
-                    $("#assistreq").hide();
-                }, 120000);
             }
         } else if (event.data.hide) {
             toggle();
