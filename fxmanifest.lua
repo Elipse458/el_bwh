@@ -3,7 +3,7 @@ game 'gta5'
 
 author 'Elipse458'
 description 'el_bwh'
-version '1.7.1'
+version '1.7.2'
 
 ui_page 'html/index.html'
 
