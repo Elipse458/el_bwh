@@ -210,8 +210,10 @@ function isBanned(identifiers)
     for _,ban in ipairs(bancache) do
         if not ban.unbanned and (ban.length==nil or ban.length>os.time()) then
             for _,bid in ipairs(ban.receiver) do
-                for _,pid in ipairs(identifiers) do
-                    if bid==pid then return true, ban end
+                if bid:find("ip:") and Config.ip_ban then
+                    for _,pid in ipairs(identifiers) do
+                        if bid==pid then return true, ban end
+                    end
                 end
             end
         end
